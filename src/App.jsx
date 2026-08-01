@@ -2752,7 +2752,7 @@ function LoginScreen({ onLogin }) {
       <style>{STYLES}</style>
       <div className="card" style={{ width: 340, padding: 28 }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, marginBottom: 22 }}>
-          <img src="/logo.png" alt="Davi Celulares" style={{ height: 70, width: "auto", objectFit: "contain" }} />
+          <img src="/logo.png" alt="Davi Celulares" style={{ height: 110, width: "auto", objectFit: "contain" }} />
           <div style={{ fontSize: 11.5, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
             Gestão de loja
           </div>
