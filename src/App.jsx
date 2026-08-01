@@ -318,20 +318,55 @@ const STYLES = `
   .tab-pill { padding: 6px 13px; border-radius: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; color: var(--text-dim); }
   .tab-pill.active { background: var(--surface-3); color: var(--amber); }
 
-  @media print {
-    body * { visibility: hidden; }
-    .printable-report, .printable-report * { visibility: visible; }
-    .printable-report {
-      position: absolute; left: 0; top: 0; width: 100%;
+ @media (max-width: 768px) {
+    .app-root { flex-direction: column; }
+
+    .sidebar {
+      width: 100% !important;
+      height: auto;
+      flex-direction: row;
+      align-items: center;
+      padding: 10px 14px;
+      overflow-x: auto;
+      border-right: none;
+      border-bottom: 1px solid var(--border-soft);
     }
-    .printable-report, .printable-report * {
-      color: #000000 !important;
-      background: #ffffff !important;
-      border-color: #cccccc !important;
-      box-shadow: none !important;
+    .sidebar.collapsed { width: 100% !important; }
+    .sidebar-collapse-btn { display: none; }
+    .brand { padding: 0; margin-right: 10px; flex-shrink: 0; }
+    .nav-group { flex-direction: row; margin-top: 0; gap: 4px; overflow-x: auto; }
+    .nav-item { flex-shrink: 0; padding: 8px 10px; font-size: 12.5px; white-space: nowrap; }
+    .sidebar.collapsed .nav-item { justify-content: flex-start; padding: 8px 10px; }
+    .sidebar.collapsed .nav-item span,
+    .nav-item span { display: inline; }
+    .sidebar-footer { display: none; }
+
+    .topbar { padding: 0 14px; height: auto; flex-wrap: wrap; gap: 8px; padding-top: 12px; padding-bottom: 12px; }
+    .topbar h1 { font-size: 16px; }
+    .content { padding: 16px 14px 40px 14px; }
+
+    .grid[style*="repeat(2"],
+    .grid[style*="repeat(3"],
+    .grid[style*="repeat(4"],
+    .grid[style*="repeat(5"] {
+      grid-template-columns: 1fr !important;
     }
-    @page { size: A4; margin: 15mm; }
+    .grid[style*="1.4fr 1fr"],
+    .grid[style*="1fr 1fr"],
+    .grid[style*="1fr 1.3fr"],
+    .grid[style*="1fr 1.6fr"] {
+      grid-template-columns: 1fr !important;
+    }
+
+    .card { padding: 12px 14px; }
+    table { display: block; overflow-x: auto; white-space: nowrap; }
+    .modal, .modal.wide { max-width: 96vw; margin: 0 8px; }
+    .toolbar { flex-direction: column; align-items: stretch; gap: 10px; }
+    .toolbar-left { flex-direction: column; align-items: stretch; }
+    .toast { left: 12px; right: 12px; bottom: 12px; }
   }
+
+  @media print {
 `;
 
 /* ============================================================
@@ -2717,8 +2752,7 @@ function LoginScreen({ onLogin }) {
       <style>{STYLES}</style>
       <div className="card" style={{ width: 340, padding: 28 }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, marginBottom: 22 }}>
-          <div className="brand-mark" style={{ width: 44, height: 44 }}><Smartphone size={22} /></div>
-          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17 }}>Davi Celulares</div>
+          <img src="/logo.png" alt="Davi Celulares" style={{ height: 70, width: "auto", objectFit: "contain" }} />
           <div style={{ fontSize: 11.5, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
             Gestão de loja
           </div>
