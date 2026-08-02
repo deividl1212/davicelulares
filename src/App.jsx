@@ -2793,7 +2793,7 @@ function LoginScreen({ onLogin }) {
 
   return (
     <div style={{
-      minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
+      minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
       background: "var(--bg)", fontFamily: "var(--font-body)", color: "var(--text)",
     }}>
       <style>{STYLES}</style>
