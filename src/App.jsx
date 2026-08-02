@@ -5,11 +5,13 @@ import {
   Clock, ArrowUpCircle, ArrowDownCircle, Smartphone, Receipt, ChevronRight,
   Minus, Save, TrendingUp, TrendingDown, FileText, Phone, User, Edit2,
 } from "lucide-react";
-import { auth } from "./firebase.js";
+import { auth, db } from "./firebase.js";
 import {
   signInWithEmailAndPassword, signOut, onAuthStateChanged,
 } from "firebase/auth";
-
+import {
+  collection, getDocs, doc, getDoc, setDoc, writeBatch,
+} from "firebase/firestore";
 /* ============================================================
    DESIGN TOKENS
    Paleta "device tech": grafite quase-preto + âmbar (LED status)
@@ -417,49 +419,80 @@ const CHECKLIST_ITEMS = [
 /* ============================================================
    STORAGE HOOK
    ============================================================ */
+const FIRESTORE_COLLECTIONS = ["products", "customers", "serviceOrders", "cashRegisters", "sales", "financeEntries", "suppliers"];
+
 function useStore() {
   const [data, setData] = useState({
     products: [], customers: [], serviceOrders: [], cashRegisters: [], sales: [], financeEntries: [], suppliers: [],
     storeConfig: { name: "Davi Celulares" },
-    authConfig: null,
   });
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     (async () => {
-      const keys = ["products", "customers", "serviceOrders", "cashRegisters", "sales", "financeEntries", "suppliers", "storeConfig", "authConfig"];
       const result = {};
-      for (const k of keys) {
+      for (const name of FIRESTORE_COLLECTIONS) {
         try {
-          const r = await window.storage.get(k, false);
-          result[k] = r ? JSON.parse(r.value) : (k === "storeConfig" ? { name: "Davi Celulares" } : (k === "authConfig" ? null : []));
+          const snaps = await getDocs(collection(db, name));
+          result[name] = snaps.docs.map((d) => d.data());
         } catch (e) {
-          result[k] = k === "storeConfig" ? { name: "Davi Celulares" } : (k === "authConfig" ? null : []);
+          console.error("Erro ao carregar", name, e);
+          result[name] = [];
         }
+      }
+      try {
+        const snap = await getDoc(doc(db, "config", "storeConfig"));
+        result.storeConfig = snap.exists() ? snap.data().value : { name: "Davi Celulares" };
+      } catch (e) {
+        result.storeConfig = { name: "Davi Celulares" };
       }
       setData((d) => ({ ...d, ...result }));
       setLoaded(true);
     })();
   }, []);
 
-  const persist = useCallback(async (key, value) => {
-    setSaving(true);
-    try {
-      await window.storage.set(key, JSON.stringify(value), false);
-    } catch (e) {
-      console.error("Erro ao salvar", key, e);
+  const persistCollection = useCallback(async (name, oldArr, newArr) => {
+    const oldMap = new Map((oldArr || []).map((i) => [i.id, i]));
+    const newMap = new Map((newArr || []).map((i) => [i.id, i]));
+    const batch = writeBatch(db);
+    let hasOps = false;
+    for (const [id, item] of newMap) {
+      const old = oldMap.get(id);
+      if (!old || JSON.stringify(old) !== JSON.stringify(item)) {
+        batch.set(doc(db, name, id), item);
+        hasOps = true;
+      }
     }
-    setSaving(false);
+    for (const [id] of oldMap) {
+      if (!newMap.has(id)) {
+        batch.delete(doc(db, name, id));
+        hasOps = true;
+      }
+    }
+    if (hasOps) await batch.commit();
   }, []);
 
   const update = useCallback((key, updater) => {
     setData((prev) => {
-      const nextVal = typeof updater === "function" ? updater(prev[key]) : updater;
-      persist(key, nextVal);
+      const oldVal = prev[key];
+      const nextVal = typeof updater === "function" ? updater(oldVal) : updater;
+      setSaving(true);
+      (async () => {
+        try {
+          if (FIRESTORE_COLLECTIONS.includes(key)) {
+            await persistCollection(key, oldVal, nextVal);
+          } else {
+            await setDoc(doc(db, "config", key), { value: nextVal });
+          }
+        } catch (e) {
+          console.error("Erro ao salvar", key, e);
+        }
+        setSaving(false);
+      })();
       return { ...prev, [key]: nextVal };
     });
-  }, [persist]);
+  }, [persistCollection]);
 
   return { data, update, loaded, saving };
 }
