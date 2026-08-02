@@ -1118,6 +1118,7 @@ function VendasPDV({ data, update, notify, storeName }) {
       <div className="toolbar">
         <div className="toolbar-left">
           <span className="badge green"><span className="led on" /> Caixa aberto — {fmtDateTime(openCash.openedAt)}</span>
+          <span className="badge gray">Abertura: {brl(openCash.openingAmount)}</span>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button className="btn btn-secondary btn-sm" onClick={() => setMovModal("reforco")}><ArrowUpCircle size={14} /> Reforço</button>
@@ -1552,7 +1553,7 @@ function Estoque({ data, update, notify }) {
     return matchesSearch && matchesCategory;
   });
 
-  const categoriesList = ["Aparelho", "Acessório", "Peça de reposição", "Película", "Capinha", "Cabos", "Eletrônicos", "Pilhas e baterias"];
+  const categoriesList = ["Aparelho", "Acessório", "Peça de reposição", "Película", "Capinha", "Fontes e Cabos", "Eletrônicos", "Pilhas e baterias"];
 
   return (
     <div>
@@ -1617,7 +1618,7 @@ function Estoque({ data, update, notify }) {
           <div className="field-row" style={{ gridTemplateColumns: "1fr 1fr" }}>
             <Field label="Categoria">
               <select className="input" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
-                {["Aparelho", "Acessório", "Peça de reposição", "Película", "Capinha", "Cabos", "Eletrônicos", "Pilhas e Baterias"].map((c) => <option key={c}>{c}</option>)}
+                {["Aparelho", "Acessório", "Peça de reposição", "Película", "Capinha", "Fontes e Cabos", "Eletrônicos", "Pilhas e Baterias"].map((c) => <option key={c}>{c}</option>)}
               </select>
             </Field>
             <Field label="SKU (código interno)"><input className="input" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} placeholder="Ex: CAP-IP13-01" /></Field>
@@ -2821,6 +2822,9 @@ function LoginScreen({ onLogin }) {
           </button>
         </div>
       </div>
+      <div style={{ marginTop: 18, fontSize: 11, color: "var(--text-faint)" }}>
+        © Desenvolvido por Deivid Lima
+      </div>
     </div>
   );
 }
@@ -2949,7 +2953,7 @@ export default function App() {
           </div>
           <button className="btn btn-secondary btn-sm" onClick={() => setSettingsOpen(true)}>{data.storeConfig.name}</button>
         </div>
-        <div className="content">
+       <div className="content">
           {!loaded ? (
             <div style={{ color: "var(--text-faint)", padding: 40, textAlign: "center" }}>Carregando dados...</div>
           ) : (
@@ -2965,6 +2969,9 @@ export default function App() {
               {view === "contas-despesas" && <ContasDespesas data={data} update={update} notify={notify} />}
             </>
           )}
+          <div style={{ textAlign: "center", fontSize: 11, color: "var(--text-faint)", marginTop: 30, paddingTop: 16, borderTop: "1px solid var(--border-soft)" }}>
+            © Desenvolvido por Deivid Lima
+          </div>
         </div>
       </div>
 
