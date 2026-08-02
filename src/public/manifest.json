@@ -1,0 +1,20 @@
+{
+  "name": "Davi Celulares - Gestão de loja",
+  "short_name": "Davi Celulares",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0E1013",
+  "theme_color": "#0E1013",
+  "icons": [
+    {
+      "src": "/logoparaoapp.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/logoparaoapp.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
