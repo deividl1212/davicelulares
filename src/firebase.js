@@ -3,7 +3,7 @@ import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyASet23t9I_XNWCbxkrV6Rry21Wnuf6DtE",
+   apiKey: "AIzaSyAset23t9I_XNWCbxkrV6Rry21Wnuf6DtE",
   authDomain: "davi-celulares.firebaseapp.com",
   projectId: "davi-celulares",
   storageBucket: "davi-celulares.firebasestorage.app",
