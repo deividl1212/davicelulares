@@ -5,6 +5,10 @@ import {
   Clock, ArrowUpCircle, ArrowDownCircle, Smartphone, Receipt, ChevronRight,
   Minus, Save, TrendingUp, TrendingDown, FileText, Phone, User, Edit2,
 } from "lucide-react";
+import { auth } from "./firebase.js";
+import {
+  signInWithEmailAndPassword, signOut, onAuthStateChanged,
+} from "firebase/auth";
 
 /* ============================================================
    DESIGN TOKENS
@@ -2726,22 +2730,31 @@ function FinanceiroMensal({ data }) {
 /* ============================================================
    LOGIN
    ============================================================ */
-// Defina aqui o usuário e senha de acesso ao sistema:
-const APP_USERNAME = "davicelulares";
-const APP_PASSWORD = "1234";
-
 function LoginScreen({ onLogin }) {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const submit = () => {
+  const submit = async () => {
     setError("");
-    if (username.trim() === APP_USERNAME && password === APP_PASSWORD) {
+    if (!email.trim() || !password) { setError("Preencha e-mail e senha"); return; }
+    setLoading(true);
+    try {
+      await signInWithEmailAndPassword(auth, email.trim(), password);
       onLogin();
-    } else {
-      setError("Usuário ou senha incorretos");
+    } catch (e) {
+      if (e.code === "auth/invalid-credential" || e.code === "auth/wrong-password" || e.code === "auth/user-not-found") {
+        setError("E-mail ou senha incorretos");
+      } else if (e.code === "auth/invalid-email") {
+        setError("E-mail inválido");
+      } else if (e.code === "auth/too-many-requests") {
+        setError("Muitas tentativas. Aguarde um pouco e tente de novo");
+      } else {
+        setError("Erro ao entrar. Tente novamente");
+      }
     }
+    setLoading(false);
   };
 
   return (
@@ -2759,8 +2772,8 @@ function LoginScreen({ onLogin }) {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <Field label="Usuário">
-            <input className="input" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Ex: davi" onKeyDown={(e) => e.key === "Enter" && submit()} />
+          <Field label="E-mail">
+            <input className="input" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="seuemail@exemplo.com" onKeyDown={(e) => e.key === "Enter" && submit()} />
           </Field>
           <Field label="Senha">
             <input type="password" className="input" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••" onKeyDown={(e) => e.key === "Enter" && submit()} />
@@ -2770,15 +2783,14 @@ function LoginScreen({ onLogin }) {
               <AlertTriangle size={13} /> {error}
             </div>
           )}
-          <button className="btn btn-primary" style={{ marginTop: 6 }} onClick={submit}>
-            <Unlock size={15} /> Entrar
+          <button className="btn btn-primary" style={{ marginTop: 6 }} onClick={submit} disabled={loading}>
+            <Unlock size={15} /> {loading ? "Entrando..." : "Entrar"}
           </button>
         </div>
       </div>
     </div>
   );
 }
-
 /* ============================================================
    APP
    ============================================================ */
@@ -2811,18 +2823,23 @@ export default function App() {
   const [view, setView] = useState("vendas");
   const [toast, setToast] = useState(null);
   const notify = (msg) => setToast(msg);
-  const [loggedIn, setLoggedIn] = useState(() => sessionStorage.getItem("davi-celulares-session") === "ok");
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
 
-  const handleLogin = () => {
-    sessionStorage.setItem("davi-celulares-session", "ok");
-    setLoggedIn(true);
-  };
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setLoggedIn(!!user);
+      setAuthChecked(true);
+    });
+    return unsubscribe;
+  }, []);
 
-  const handleLogout = () => {
-    sessionStorage.removeItem("davi-celulares-session");
+  const handleLogin = () => setLoggedIn(true);
+
+  const handleLogout = async () => {
+    await signOut(auth);
     setLoggedIn(false);
   };
-
   const openCash = data.cashRegisters.find((c) => c.status === "aberto");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [storeNameDraft, setStoreNameDraft] = useState(data.storeConfig.name);
@@ -2836,7 +2853,15 @@ export default function App() {
     notify("Nome da loja atualizado");
   };
 
-  if (loaded && !loggedIn) {
+  if (!authChecked) {
+    return (
+      <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "var(--bg)", color: "var(--text-faint)" }}>
+        Carregando...
+      </div>
+    );
+  }
+
+  if (!loggedIn) {
     return <LoginScreen onLogin={handleLogin} />;
   }
   return (
