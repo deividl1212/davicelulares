@@ -404,6 +404,7 @@ const PAYMENT_LABELS = { dinheiro: "Dinheiro", pix: "Pix", credito: "Cartão Cr�
 const OS_STATUS = {
   aguardando_peca: { label: "Aguardando peça", color: "amber" },
   em_reparo: { label: "Em reparo", color: "blue" },
+  pronto: { label: "Pronto p/ retirada", color: "gray" },
   entregue: { label: "Entregue", color: "green" },
 };
 const CHECKLIST_ITEMS = [
@@ -901,8 +902,9 @@ function VendasPDV({ data, update, notify, storeName }) {
   const matchedOS = useMemo(() => {
     const q = search.trim();
     if (!/^\d{4}$/.test(q)) return null;
-    return data.serviceOrders.find((o) => o.osCode === q) || null;
+    return data.serviceOrders.find((o) => o.osCode === q && o.status !== "entregue") || null;
   }, [search, data.serviceOrders]);
+
   const addToCart = (product) => {
     setCart((c) => {
       const existing = c.find((i) => i.productId === product.id);
