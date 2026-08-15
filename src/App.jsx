@@ -1551,7 +1551,7 @@ function Estoque({ data, update, notify }) {
   const filtered = data.products.filter((p) => {
     const q = search.toLowerCase();
     const matchesSearch = p.name.toLowerCase().includes(q) || (p.sku || "").toLowerCase().includes(q) || p.category.toLowerCase().includes(q);
-    const matchesCategory = categoryFilter === "todas" || p.category === categoryFilter;
+    const matchesCategory = categoryFilter === "todas" || p.category.toLowerCase() === categoryFilter.toLowerCase();
     return matchesSearch && matchesCategory;
   });
 const categoriesList = PRODUCT_CATEGORIES;
