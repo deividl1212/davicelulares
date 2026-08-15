@@ -1502,6 +1502,8 @@ function CashReportModal({ data, customers, onClose, justClosed }) {
 /* ============================================================
    ESTOQUE
    ============================================================ */
+const PRODUCT_CATEGORIES = ["Aparelho", "Acessório", "Peça de reposição", "Película", "Capinha", "Cabos", "Eletrônicos", "Pilhas e baterias"];
+
 function Estoque({ data, update, notify }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -1552,8 +1554,7 @@ function Estoque({ data, update, notify }) {
     const matchesCategory = categoryFilter === "todas" || p.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
-
-  const categoriesList = ["Aparelho", "Acessório", "Peça de reposição", "Película", "Capinha", "Fontes e Cabos", "Eletrônicos", "Pilhas e baterias"];
+const categoriesList = PRODUCT_CATEGORIES;
 
   return (
     <div>
@@ -1618,7 +1619,7 @@ function Estoque({ data, update, notify }) {
           <div className="field-row" style={{ gridTemplateColumns: "1fr 1fr" }}>
             <Field label="Categoria">
               <select className="input" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
-                {["Aparelho", "Acessório", "Peça de reposição", "Película", "Capinha", "Fontes e Cabos", "Eletrônicos", "Pilhas e Baterias"].map((c) => <option key={c}>{c}</option>)}
+                {PRODUCT_CATEGORIES.map((c) => <option key={c}>{c}</option>)}
               </select>
             </Field>
             <Field label="SKU (código interno)"><input className="input" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} placeholder="Ex: CAP-IP13-01" /></Field>
