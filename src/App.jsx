@@ -1363,6 +1363,66 @@ function VendasPDV({ data, update, notify, storeName }) {
   );
 }
 
+function printReceiptWindow(sale, storeName) {
+  const dt = new Date(sale.createdAt);
+  const rows = sale.items.map((i) => `
+    <tr>
+      <td>${i.name}</td>
+      <td style="text-align:right">${brl(i.price)}</td>
+      <td style="text-align:right">${i.qty}</td>
+      <td style="text-align:right">${i.discountPct ? i.discountPct + "%" : "—"}</td>
+      <td style="text-align:right">${brl(i.lineTotal)}</td>
+    </tr>
+  `).join("");
+
+  const win = window.open("", "_blank", "width=380,height=600");
+  win.document.write(`
+    <html>
+      <head>
+        <title>Comprovante</title>
+        <style>
+          @page { size: 76mm auto; margin: 3mm; }
+          body { font-family: Arial, sans-serif; font-size: 11px; color: #000; margin: 0; padding: 0; width: 76mm; }
+          table { width: 100%; border-collapse: collapse; font-size: 10.5px; }
+          td, th { padding: 3px 2px; }
+          .center { text-align: center; }
+          .bold { font-weight: bold; }
+          .line { border-top: 1px dashed #000; margin: 6px 0; }
+          .row { display: flex; justify-content: space-between; font-size: 11px; }
+        </style>
+      </head>
+      <body>
+        <div class="center bold" style="font-size:14px;">${storeName}</div>
+        <div class="center" style="font-size:10px;">Comprovante de venda</div>
+        <div class="line"></div>
+        <div class="row"><span>Data: ${dt.toLocaleDateString("pt-BR")}</span><span>Hora: ${dt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span></div>
+        ${sale.customerName ? `<div>Cliente: ${sale.customerName}</div>` : ""}
+        <div class="line"></div>
+        <table>
+          <thead><tr><th style="text-align:left">Produto</th><th style="text-align:right">Preço</th><th style="text-align:right">Qtd</th><th style="text-align:right">Desc</th><th style="text-align:right">Total</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div class="line"></div>
+        ${sale.discountTotal > 0 ? `<div class="row"><span>Desconto por item</span><span>-${brl(sale.discountTotal)}</span></div>` : ""}
+        ${sale.extraDiscount > 0 ? `<div class="row"><span>Desconto adicional (${sale.extraDiscountPct}%)</span><span>-${brl(sale.extraDiscount)}</span></div>` : ""}
+        ${sale.extraSurcharge > 0 ? `<div class="row"><span>Acréscimo (${sale.extraSurchargePct}%)</span><span>+${brl(sale.extraSurcharge)}</span></div>` : ""}
+        <div class="line"></div>
+        <div class="row bold" style="font-size:13px;"><span>Total pago</span><span>${brl(sale.total)}</span></div>
+        <div class="row" style="font-size:10px;"><span>Forma de pagamento</span><span>${PAYMENT_LABELS[sale.paymentMethod]}${sale.installments > 1 ? ` (${sale.installments}x)` : ""}</span></div>
+        ${sale.paymentMethod === "dinheiro" && sale.cashReceived != null ? `
+          <div class="row" style="font-size:10px;"><span>Valor recebido</span><span>${brl(sale.cashReceived)}</span></div>
+          <div class="row" style="font-size:10px;"><span>Troco</span><span>${brl(sale.troco)}</span></div>
+        ` : ""}
+        <div class="line"></div>
+        <div class="center" style="font-size:10px;">Obrigado pela sua preferência, volte sempre!</div>
+      </body>
+    </html>
+  `);
+  win.document.close();
+  win.focus();
+  setTimeout(() => { win.print(); win.close(); }, 250);
+}
+
 function ReceiptModal({ sale, storeName, onClose }) {
   const dt = new Date(sale.createdAt);
   return (
@@ -1370,7 +1430,7 @@ function ReceiptModal({ sale, storeName, onClose }) {
       title="Comprovante de venda"
       onClose={onClose}
       footer={<>
-        <button className="btn btn-secondary" onClick={() => window.print()}><FileText size={14} /> Imprimir</button>
+        <button className="btn btn-secondary" onClick={() => printReceiptWindow(sale, storeName)}><FileText size={14} /> Imprimir</button>
         <button className="btn btn-primary" onClick={onClose}>Concluir</button>
       </>}
     >
