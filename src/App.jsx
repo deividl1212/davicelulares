@@ -372,7 +372,34 @@ const STYLES = `
     .toast { left: 12px; right: 12px; bottom: 12px; }
   }
 
-  @media print {
+ @media print {
+    body * { visibility: hidden; }
+    .printable-report, .printable-report *,
+    .printable-receipt, .printable-receipt * { visibility: visible; }
+
+    .printable-report {
+      position: absolute; left: 0; top: 0; width: 100%;
+      page: report-page;
+    }
+    .printable-receipt {
+      position: absolute; left: 0; top: 0; width: 76mm;
+      page: receipt-page;
+    }
+
+    .printable-report, .printable-report *,
+    .printable-receipt, .printable-receipt * {
+      color: #000000 !important;
+      background: #ffffff !important;
+      border-color: #cccccc !important;
+      box-shadow: none !important;
+    }
+
+    .printable-receipt { padding: 0 !important; border: none !important; border-radius: 0 !important; }
+    .printable-receipt table { font-size: 10.5px; }
+    .printable-receipt th, .printable-receipt td { padding: 3px 2px; }
+  }
+  @page report-page { size: A4; margin: 15mm; }
+  @page receipt-page { size: 76mm auto; margin: 3mm; }
 `;
 
 /* ============================================================
@@ -1347,7 +1374,7 @@ function ReceiptModal({ sale, storeName, onClose }) {
         <button className="btn btn-primary" onClick={onClose}>Concluir</button>
       </>}
     >
-      <div style={{ background: "var(--surface-2)", border: "1px solid var(--border-soft)", borderRadius: 10, padding: 18 }}>
+      <div className="printable-receipt" style={{ background: "var(--surface-2)", border: "1px solid var(--border-soft)", borderRadius: 10, padding: 18 }}>
         <div style={{ textAlign: "center", marginBottom: 14 }}>
           <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16 }}>{storeName}</div>
           <div style={{ fontSize: 11.5, color: "var(--text-faint)" }}>Comprovante de venda</div>
