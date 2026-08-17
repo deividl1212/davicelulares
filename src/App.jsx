@@ -1380,18 +1380,19 @@ function printReceiptWindow(sale, storeName) {
     <html>
       <head>
         <title>Comprovante</title>
-        <style>
-          @page { size: 76mm auto; margin: 3mm; }
-          body { font-family: Arial, sans-serif; font-size: 11px; color: #000; margin: 0; padding: 0; width: 76mm; }
-          table { width: 100%; border-collapse: collapse; font-size: 10.5px; }
-          td, th { padding: 3px 2px; }
+        <style id="page-style">
+          @page { size: 58mm 200mm; margin: 2mm; }
+          body { font-family: Arial, sans-serif; font-size: 11px; color: #000; margin: 0; padding: 0; width: 58mm; }
+          table { width: 100%; border-collapse: collapse; font-size: 10px; }
+          td, th { padding: 2px 1px; }
           .center { text-align: center; }
           .bold { font-weight: bold; }
           .line { border-top: 1px dashed #000; margin: 6px 0; }
-          .row { display: flex; justify-content: space-between; font-size: 11px; }
+          .row { display: flex; justify-content: space-between; font-size: 10.5px; }
         </style>
       </head>
-      <body>
+      <body id="receipt-body">
+
         <div class="center bold" style="font-size:14px;">${storeName}</div>
         <div class="center" style="font-size:10px;">Comprovante de venda</div>
         <div class="line"></div>
@@ -1419,8 +1420,19 @@ function printReceiptWindow(sale, storeName) {
     </html>
   `);
   win.document.close();
-  win.focus();
-  setTimeout(() => { win.print(); win.close(); }, 250);
+
+  setTimeout(() => {
+    const contentHeightPx = win.document.body.scrollHeight;
+    const contentHeightMm = Math.ceil(contentHeightPx / 3.78) + 8;
+    const styleTag = win.document.getElementById("page-style");
+    styleTag.innerHTML = styleTag.innerHTML.replace(
+      "@page { size: 58mm 200mm; margin: 2mm; }",
+      `@page { size: 58mm ${contentHeightMm}mm; margin: 2mm; }`
+    );
+    win.focus();
+    win.print();
+    setTimeout(() => win.close(), 300);
+  }, 300);
 }
 
 function ReceiptModal({ sale, storeName, onClose }) {
