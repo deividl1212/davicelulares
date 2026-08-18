@@ -5,6 +5,7 @@ import {
   Clock, ArrowUpCircle, ArrowDownCircle, Smartphone, Receipt, ChevronRight,
   Minus, Save, TrendingUp, TrendingDown, FileText, Phone, User, Edit2,
 } from "lucide-react";
+import { jsPDF } from "jspdf";
 import { auth, db } from "./firebase.js";
 import {
   signInWithEmailAndPassword, signOut, onAuthStateChanged,
@@ -1363,76 +1364,139 @@ function VendasPDV({ data, update, notify, storeName }) {
   );
 }
 
-function printReceiptWindow(sale, storeName) {
+function buildReceiptPdf(sale, storeName) {
+  const pageWidth = 58;
+  const marginX = 3;
+  const contentWidth = pageWidth - marginX * 2;
+  const lineH = 4.2;
+
+  const scratch = new jsPDF({ unit: "mm", format: [pageWidth, 100] });
+  scratch.setFont("helvetica", "normal");
+  scratch.setFontSize(7.5);
+
+  const itemLines = sale.items.map((i) => ({
+    item: i,
+    nameLines: scratch.splitTextToSize(i.name, contentWidth * 0.55),
+  }));
+
+  let totalLines = 5;
+  if (sale.customerName) totalLines += 1;
+  itemLines.forEach((il) => { totalLines += il.nameLines.length; });
+  if (sale.discountTotal > 0) totalLines += 1;
+  if (sale.extraDiscount > 0) totalLines += 1;
+  if (sale.extraSurcharge > 0) totalLines += 1;
+  totalLines += 4;
+  if (sale.paymentMethod === "dinheiro" && sale.cashReceived != null) totalLines += 2;
+  totalLines += 3;
+
+  const heightMm = 14 + totalLines * lineH;
+  const doc = new jsPDF({ unit: "mm", format: [pageWidth, heightMm] });
+  let y = 8;
+  const centerX = pageWidth / 2;
+
+  const dashedLine = () => {
+    doc.setLineDashPattern([0.8, 0.8], 0);
+    doc.line(marginX, y, pageWidth - marginX, y);
+    doc.setLineDashPattern([], 0);
+    y += lineH * 0.9;
+  };
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.text(storeName, centerX, y, { align: "center" });
+  y += lineH;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  doc.text("Comprovante de venda", centerX, y, { align: "center" });
+  y += lineH * 1.3;
+
   const dt = new Date(sale.createdAt);
-  const rows = sale.items.map((i) => `
-    <tr>
-      <td>${i.name}</td>
-      <td style="text-align:right">${brl(i.price)}</td>
-      <td style="text-align:right">${i.qty}</td>
-      <td style="text-align:right">${i.discountPct ? i.discountPct + "%" : "—"}</td>
-      <td style="text-align:right">${brl(i.lineTotal)}</td>
-    </tr>
-  `).join("");
+  doc.text(`Data: ${dt.toLocaleDateString("pt-BR")}`, marginX, y);
+  doc.text(`Hora: ${dt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`, pageWidth - marginX, y, { align: "right" });
+  y += lineH;
 
-  const win = window.open("", "_blank", "width=380,height=600");
-  win.document.write(`
-    <html>
-      <head>
-        <title>Comprovante</title>
-        <style id="page-style">
-          @page { size: 58mm 200mm; margin: 2mm; }
-          body { font-family: Arial, sans-serif; font-size: 11px; color: #000; margin: 0; padding: 0; width: 58mm; }
-          table { width: 100%; border-collapse: collapse; font-size: 10px; }
-          td, th { padding: 2px 1px; }
-          .center { text-align: center; }
-          .bold { font-weight: bold; }
-          .line { border-top: 1px dashed #000; margin: 6px 0; }
-          .row { display: flex; justify-content: space-between; font-size: 10.5px; }
-        </style>
-      </head>
-      <body id="receipt-body">
+  if (sale.customerName) {
+    doc.text(`Cliente: ${sale.customerName}`, marginX, y);
+    y += lineH;
+  }
+  dashedLine();
 
-        <div class="center bold" style="font-size:14px;">${storeName}</div>
-        <div class="center" style="font-size:10px;">Comprovante de venda</div>
-        <div class="line"></div>
-        <div class="row"><span>Data: ${dt.toLocaleDateString("pt-BR")}</span><span>Hora: ${dt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span></div>
-        ${sale.customerName ? `<div>Cliente: ${sale.customerName}</div>` : ""}
-        <div class="line"></div>
-        <table>
-          <thead><tr><th style="text-align:left">Produto</th><th style="text-align:right">Preço</th><th style="text-align:right">Qtd</th><th style="text-align:right">Desc</th><th style="text-align:right">Total</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-        <div class="line"></div>
-        ${sale.discountTotal > 0 ? `<div class="row"><span>Desconto por item</span><span>-${brl(sale.discountTotal)}</span></div>` : ""}
-        ${sale.extraDiscount > 0 ? `<div class="row"><span>Desconto adicional (${sale.extraDiscountPct}%)</span><span>-${brl(sale.extraDiscount)}</span></div>` : ""}
-        ${sale.extraSurcharge > 0 ? `<div class="row"><span>Acréscimo (${sale.extraSurchargePct}%)</span><span>+${brl(sale.extraSurcharge)}</span></div>` : ""}
-        <div class="line"></div>
-        <div class="row bold" style="font-size:13px;"><span>Total pago</span><span>${brl(sale.total)}</span></div>
-        <div class="row" style="font-size:10px;"><span>Forma de pagamento</span><span>${PAYMENT_LABELS[sale.paymentMethod]}${sale.installments > 1 ? ` (${sale.installments}x)` : ""}</span></div>
-        ${sale.paymentMethod === "dinheiro" && sale.cashReceived != null ? `
-          <div class="row" style="font-size:10px;"><span>Valor recebido</span><span>${brl(sale.cashReceived)}</span></div>
-          <div class="row" style="font-size:10px;"><span>Troco</span><span>${brl(sale.troco)}</span></div>
-        ` : ""}
-        <div class="line"></div>
-        <div class="center" style="font-size:10px;">Obrigado pela sua preferência, volte sempre!</div>
-      </body>
-    </html>
-  `);
-  win.document.close();
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(6.5);
+  doc.text("Produto", marginX, y);
+  doc.text("Qtd", pageWidth - marginX - 16, y, { align: "right" });
+  doc.text("Total", pageWidth - marginX, y, { align: "right" });
+  y += lineH;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
 
-  setTimeout(() => {
-    const contentHeightPx = win.document.body.scrollHeight;
-    const contentHeightMm = Math.ceil(contentHeightPx / 3.78) + 8;
-    const styleTag = win.document.getElementById("page-style");
-    styleTag.innerHTML = styleTag.innerHTML.replace(
-      "@page { size: 58mm 200mm; margin: 2mm; }",
-      `@page { size: 58mm ${contentHeightMm}mm; margin: 2mm; }`
-    );
-    win.focus();
-    win.print();
-    setTimeout(() => win.close(), 300);
-  }, 300);
+  itemLines.forEach(({ item, nameLines }) => {
+    nameLines.forEach((nl, idx) => {
+      doc.text(nl, marginX, y);
+      if (idx === 0) {
+        doc.text(String(item.qty), pageWidth - marginX - 16, y, { align: "right" });
+        doc.text(brl(item.lineTotal), pageWidth - marginX, y, { align: "right" });
+      }
+      y += lineH;
+    });
+  });
+  dashedLine();
+
+  if (sale.discountTotal > 0) {
+    doc.text("Desconto por item", marginX, y);
+    doc.text(`-${brl(sale.discountTotal)}`, pageWidth - marginX, y, { align: "right" });
+    y += lineH;
+  }
+  if (sale.extraDiscount > 0) {
+    doc.text(`Desc. adicional (${sale.extraDiscountPct}%)`, marginX, y);
+    doc.text(`-${brl(sale.extraDiscount)}`, pageWidth - marginX, y, { align: "right" });
+    y += lineH;
+  }
+  if (sale.extraSurcharge > 0) {
+    doc.text(`Acréscimo (${sale.extraSurchargePct}%)`, marginX, y);
+    doc.text(`+${brl(sale.extraSurcharge)}`, pageWidth - marginX, y, { align: "right" });
+    y += lineH;
+  }
+  dashedLine();
+
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.text("Total pago", marginX, y);
+  doc.text(brl(sale.total), pageWidth - marginX, y, { align: "right" });
+  y += lineH * 1.3;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(6.5);
+  const paymentLabel = PAYMENT_LABELS[sale.paymentMethod] + (sale.installments > 1 ? ` (${sale.installments}x)` : "");
+  doc.text("Forma de pagamento", marginX, y);
+  doc.text(paymentLabel, pageWidth - marginX, y, { align: "right" });
+  y += lineH;
+
+  if (sale.paymentMethod === "dinheiro" && sale.cashReceived != null) {
+    doc.text("Valor recebido", marginX, y);
+    doc.text(brl(sale.cashReceived), pageWidth - marginX, y, { align: "right" });
+    y += lineH;
+    doc.text("Troco", marginX, y);
+    doc.text(brl(sale.troco), pageWidth - marginX, y, { align: "right" });
+    y += lineH;
+  }
+  dashedLine();
+
+  doc.setFontSize(7);
+  const thanks = doc.splitTextToSize("Obrigado pela sua preferência, volte sempre!", contentWidth);
+  thanks.forEach((l) => {
+    doc.text(l, centerX, y, { align: "center" });
+    y += lineH;
+  });
+
+  return doc;
+}
+
+function printReceiptWindow(sale, storeName) {
+  const doc = buildReceiptPdf(sale, storeName);
+  doc.autoPrint();
+  const blobUrl = doc.output("bloburl");
+  window.open(blobUrl, "_blank");
 }
 
 function ReceiptModal({ sale, storeName, onClose }) {
