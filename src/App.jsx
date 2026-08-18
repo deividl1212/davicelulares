@@ -1366,10 +1366,10 @@ function VendasPDV({ data, update, notify, storeName }) {
 
 function buildReceiptPdf(sale, storeName) {
   const pageWidth = 48;
-  const marginLeft = 10;
-  const marginRight = 3;
+  const marginLeft = 8;
+  const marginRight = 2;
   const contentWidth = pageWidth - marginLeft - marginRight;
-  const lineH = 4.2;
+  const lineH = 4.4;
 
   const scratch = new jsPDF({ unit: "mm", format: [pageWidth, 100] });
   scratch.setFont("helvetica", "normal");
@@ -1406,10 +1406,15 @@ function buildReceiptPdf(sale, storeName) {
   doc.setFontSize(10);
   doc.text(storeName, centerX, y, { align: "center" });
   y += lineH;
-  doc.setFont("helvetica", "normal");
+    doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
-  doc.text("Comprovante de venda", centerX, y, { align: "center" });
-  y += lineH * 1.3;
+  const paymentLabel = PAYMENT_LABELS[sale.paymentMethod] + (sale.installments > 1 ? ` (${sale.installments}x)` : "");
+  doc.text("Forma de pagamento:", marginLeft, y);
+  y += lineH;
+  doc.setFont("helvetica", "bold");
+  doc.text(paymentLabel, marginLeft, y);
+  y += lineH;
+  doc.setFont("helvetica", "normal");
 
   const dt = new Date(sale.createdAt);
   doc.setFontSize(6.5);
