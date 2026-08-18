@@ -1365,18 +1365,19 @@ function VendasPDV({ data, update, notify, storeName }) {
 }
 
 function buildReceiptPdf(sale, storeName) {
-  const pageWidth = 58;
-  const marginX = 5;
-  const contentWidth = pageWidth - marginX * 2;
+  const pageWidth = 48;
+  const marginLeft = 10;
+  const marginRight = 3;
+  const contentWidth = pageWidth - marginLeft - marginRight;
   const lineH = 4.2;
 
   const scratch = new jsPDF({ unit: "mm", format: [pageWidth, 100] });
   scratch.setFont("helvetica", "normal");
-  scratch.setFontSize(7.5);
+  scratch.setFontSize(7);
 
-    const itemLines = sale.items.map((i) => ({
+  const itemLines = sale.items.map((i) => ({
     item: i,
-    nameLines: scratch.splitTextToSize(i.name, contentWidth * 0.5),
+    nameLines: scratch.splitTextToSize(i.name, contentWidth * 0.55),
   }));
 
   let totalLines = 5;
@@ -1389,14 +1390,14 @@ function buildReceiptPdf(sale, storeName) {
   if (sale.paymentMethod === "dinheiro" && sale.cashReceived != null) totalLines += 2;
   totalLines += 3;
 
-  const heightMm = 14 + totalLines * lineH;
+  const heightMm = 26 + totalLines * lineH;
   const doc = new jsPDF({ unit: "mm", format: [pageWidth, heightMm] });
-  let y = 8;
-  const centerX = pageWidth / 2;
+  let y = 18;
+  const centerX = marginLeft + contentWidth / 2;
 
   const dashedLine = () => {
     doc.setLineDashPattern([0.8, 0.8], 0);
-    doc.line(marginX, y, pageWidth - marginX, y);
+    doc.line(marginLeft, y, pageWidth - marginRight, y);
     doc.setLineDashPattern([], 0);
     y += lineH * 0.9;
   };
@@ -1410,33 +1411,33 @@ function buildReceiptPdf(sale, storeName) {
   doc.text("Comprovante de venda", centerX, y, { align: "center" });
   y += lineH * 1.3;
 
-    const dt = new Date(sale.createdAt);
+  const dt = new Date(sale.createdAt);
   doc.setFontSize(6.5);
-  doc.text(`Data: ${dt.toLocaleDateString("pt-BR")}`, marginX, y);
-  doc.text(`Hora: ${dt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`, pageWidth - marginX, y, { align: "right" });
+  doc.text(`Data: ${dt.toLocaleDateString("pt-BR")}`, marginLeft, y);
+  doc.text(`Hora: ${dt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`, pageWidth - marginRight, y, { align: "right" });
   y += lineH;
 
   if (sale.customerName) {
-    doc.text(`Cliente: ${sale.customerName}`, marginX, y);
+    doc.text(`Cliente: ${sale.customerName}`, marginLeft, y);
     y += lineH;
   }
   dashedLine();
 
-      doc.setFont("helvetica", "bold");
-  doc.setFontSize(6);
-  doc.text("Produto", marginX, y);
-  doc.text("Qtd", pageWidth - marginX - 11, y, { align: "right" });
-  doc.text("Total", pageWidth - marginX, y, { align: "right" });
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(6.5);
+  doc.text("Produto", marginLeft, y);
+  doc.text("Qtd", pageWidth - marginRight - 12, y, { align: "right" });
+  doc.text("Total", pageWidth - marginRight, y, { align: "right" });
   y += lineH;
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(6.5);
+  doc.setFontSize(7);
 
   itemLines.forEach(({ item, nameLines }) => {
     nameLines.forEach((nl, idx) => {
-      doc.text(nl, marginX, y);
+      doc.text(nl, marginLeft, y);
       if (idx === 0) {
-        doc.text(String(item.qty), pageWidth - marginX - 11, y, { align: "right" });
-        doc.text(brl(item.lineTotal), pageWidth - marginX, y, { align: "right" });
+        doc.text(String(item.qty), pageWidth - marginRight - 12, y, { align: "right" });
+        doc.text(brl(item.lineTotal), pageWidth - marginRight, y, { align: "right" });
       }
       y += lineH;
     });
@@ -1444,41 +1445,41 @@ function buildReceiptPdf(sale, storeName) {
   dashedLine();
 
   if (sale.discountTotal > 0) {
-    doc.text("Desconto por item", marginX, y);
-    doc.text(`-${brl(sale.discountTotal)}`, pageWidth - marginX, y, { align: "right" });
+    doc.text("Desconto por item", marginLeft, y);
+    doc.text(`-${brl(sale.discountTotal)}`, pageWidth - marginRight, y, { align: "right" });
     y += lineH;
   }
   if (sale.extraDiscount > 0) {
-    doc.text(`Desc. adicional (${sale.extraDiscountPct}%)`, marginX, y);
-    doc.text(`-${brl(sale.extraDiscount)}`, pageWidth - marginX, y, { align: "right" });
+    doc.text(`Desc. adicional (${sale.extraDiscountPct}%)`, marginLeft, y);
+    doc.text(`-${brl(sale.extraDiscount)}`, pageWidth - marginRight, y, { align: "right" });
     y += lineH;
   }
   if (sale.extraSurcharge > 0) {
-    doc.text(`Acréscimo (${sale.extraSurchargePct}%)`, marginX, y);
-    doc.text(`+${brl(sale.extraSurcharge)}`, pageWidth - marginX, y, { align: "right" });
+    doc.text(`Acréscimo (${sale.extraSurchargePct}%)`, marginLeft, y);
+    doc.text(`+${brl(sale.extraSurcharge)}`, pageWidth - marginRight, y, { align: "right" });
     y += lineH;
   }
   dashedLine();
 
-    doc.setFont("helvetica", "bold");
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(8);
-  doc.text("Total pago", marginX, y);
-  doc.text(brl(sale.total), pageWidth - marginX, y, { align: "right" });
+  doc.text("Total pago", marginLeft, y);
+  doc.text(brl(sale.total), pageWidth - marginRight, y, { align: "right" });
   y += lineH * 1.3;
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(6.5);
   const paymentLabel = PAYMENT_LABELS[sale.paymentMethod] + (sale.installments > 1 ? ` (${sale.installments}x)` : "");
-  doc.text("Forma de pagamento", marginX, y);
-  doc.text(paymentLabel, pageWidth - marginX, y, { align: "right" });
+  doc.text("Forma de pagamento", marginLeft, y);
+  doc.text(paymentLabel, pageWidth - marginRight, y, { align: "right" });
   y += lineH;
 
   if (sale.paymentMethod === "dinheiro" && sale.cashReceived != null) {
-    doc.text("Valor recebido", marginX, y);
-    doc.text(brl(sale.cashReceived), pageWidth - marginX, y, { align: "right" });
+    doc.text("Valor recebido", marginLeft, y);
+    doc.text(brl(sale.cashReceived), pageWidth - marginRight, y, { align: "right" });
     y += lineH;
-    doc.text("Troco", marginX, y);
-    doc.text(brl(sale.troco), pageWidth - marginX, y, { align: "right" });
+    doc.text("Troco", marginLeft, y);
+    doc.text(brl(sale.troco), pageWidth - marginRight, y, { align: "right" });
     y += lineH;
   }
   dashedLine();
@@ -1492,7 +1493,6 @@ function buildReceiptPdf(sale, storeName) {
 
   return doc;
 }
-
 function printReceiptWindow(sale, storeName) {
   const doc = buildReceiptPdf(sale, storeName);
   doc.autoPrint();
