@@ -1366,7 +1366,7 @@ function VendasPDV({ data, update, notify, storeName }) {
 
 function buildReceiptPdf(sale, storeName) {
   const pageWidth = 58;
-  const marginX = 3;
+  const marginX = 2;
   const contentWidth = pageWidth - marginX * 2;
   const lineH = 4.2;
 
@@ -1410,7 +1410,8 @@ function buildReceiptPdf(sale, storeName) {
   doc.text("Comprovante de venda", centerX, y, { align: "center" });
   y += lineH * 1.3;
 
-  const dt = new Date(sale.createdAt);
+    const dt = new Date(sale.createdAt);
+  doc.setFontSize(6.5);
   doc.text(`Data: ${dt.toLocaleDateString("pt-BR")}`, marginX, y);
   doc.text(`Hora: ${dt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`, pageWidth - marginX, y, { align: "right" });
   y += lineH;
@@ -1421,20 +1422,20 @@ function buildReceiptPdf(sale, storeName) {
   }
   dashedLine();
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(6.5);
+    doc.setFont("helvetica", "bold");
+  doc.setFontSize(6);
   doc.text("Produto", marginX, y);
-  doc.text("Qtd", pageWidth - marginX - 16, y, { align: "right" });
+  doc.text("Qtd", pageWidth - marginX - 12, y, { align: "right" });
   doc.text("Total", pageWidth - marginX, y, { align: "right" });
   y += lineH;
   doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
+  doc.setFontSize(6.5);
 
   itemLines.forEach(({ item, nameLines }) => {
     nameLines.forEach((nl, idx) => {
       doc.text(nl, marginX, y);
       if (idx === 0) {
-        doc.text(String(item.qty), pageWidth - marginX - 16, y, { align: "right" });
+        doc.text(String(item.qty), pageWidth - marginX - 12, y, { align: "right" });
         doc.text(brl(item.lineTotal), pageWidth - marginX, y, { align: "right" });
       }
       y += lineH;
@@ -1459,8 +1460,8 @@ function buildReceiptPdf(sale, storeName) {
   }
   dashedLine();
 
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
   doc.text("Total pago", marginX, y);
   doc.text(brl(sale.total), pageWidth - marginX, y, { align: "right" });
   y += lineH * 1.3;
