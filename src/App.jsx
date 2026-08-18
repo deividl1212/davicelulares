@@ -1470,7 +1470,8 @@ function buildReceiptPdf(sale, storeName) {
     doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
 
-  const paymentLabel = PAYMENT_LABELS[sale.paymentMethod] + (sale.installments > 1 ? ` (${sale.installments}x)` : "");
+    const installmentValue = sale.installments > 1 ? sale.total / sale.installments : 0;
+  const paymentLabel = PAYMENT_LABELS[sale.paymentMethod] + (sale.installments > 1 ? ` — ${sale.installments}x de ${brl(installmentValue)}` : "");
   doc.text("Forma de pagamento:", marginLeft, y);
   y += lineH;
   doc.setFont("helvetica", "bold");
