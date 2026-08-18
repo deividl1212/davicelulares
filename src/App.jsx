@@ -1366,7 +1366,7 @@ function VendasPDV({ data, update, notify, storeName }) {
 
 function buildReceiptPdf(sale, storeName) {
   const pageWidth = 58;
-  const marginX = 2;
+  const marginX = 5;
   const contentWidth = pageWidth - marginX * 2;
   const lineH = 4.2;
 
@@ -1374,9 +1374,9 @@ function buildReceiptPdf(sale, storeName) {
   scratch.setFont("helvetica", "normal");
   scratch.setFontSize(7.5);
 
-  const itemLines = sale.items.map((i) => ({
+    const itemLines = sale.items.map((i) => ({
     item: i,
-    nameLines: scratch.splitTextToSize(i.name, contentWidth * 0.55),
+    nameLines: scratch.splitTextToSize(i.name, contentWidth * 0.5),
   }));
 
   let totalLines = 5;
@@ -1422,10 +1422,10 @@ function buildReceiptPdf(sale, storeName) {
   }
   dashedLine();
 
-    doc.setFont("helvetica", "bold");
+      doc.setFont("helvetica", "bold");
   doc.setFontSize(6);
   doc.text("Produto", marginX, y);
-  doc.text("Qtd", pageWidth - marginX - 12, y, { align: "right" });
+  doc.text("Qtd", pageWidth - marginX - 11, y, { align: "right" });
   doc.text("Total", pageWidth - marginX, y, { align: "right" });
   y += lineH;
   doc.setFont("helvetica", "normal");
@@ -1435,7 +1435,7 @@ function buildReceiptPdf(sale, storeName) {
     nameLines.forEach((nl, idx) => {
       doc.text(nl, marginX, y);
       if (idx === 0) {
-        doc.text(String(item.qty), pageWidth - marginX - 12, y, { align: "right" });
+        doc.text(String(item.qty), pageWidth - marginX - 11, y, { align: "right" });
         doc.text(brl(item.lineTotal), pageWidth - marginX, y, { align: "right" });
       }
       y += lineH;
