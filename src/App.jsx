@@ -1408,13 +1408,8 @@ function buildReceiptPdf(sale, storeName) {
   y += lineH;
     doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
-  const paymentLabel = PAYMENT_LABELS[sale.paymentMethod] + (sale.installments > 1 ? ` (${sale.installments}x)` : "");
-  doc.text("Forma de pagamento:", marginLeft, y);
-  y += lineH;
-  doc.setFont("helvetica", "bold");
-  doc.text(paymentLabel, marginLeft, y);
-  y += lineH;
-  doc.setFont("helvetica", "normal");
+
+
 
   const dt = new Date(sale.createdAt);
   doc.setFontSize(6.5);
@@ -1472,12 +1467,16 @@ function buildReceiptPdf(sale, storeName) {
   doc.text(brl(sale.total), pageWidth - marginRight, y, { align: "right" });
   y += lineH * 1.3;
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(6.5);
+    doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+
   const paymentLabel = PAYMENT_LABELS[sale.paymentMethod] + (sale.installments > 1 ? ` (${sale.installments}x)` : "");
-  doc.text("Forma de pagamento", marginLeft, y);
-  doc.text(paymentLabel, pageWidth - marginRight, y, { align: "right" });
+  doc.text("Forma de pagamento:", marginLeft, y);
   y += lineH;
+  doc.setFont("helvetica", "bold");
+  doc.text(paymentLabel, marginLeft, y);
+  y += lineH;
+  doc.setFont("helvetica", "normal");
 
   if (sale.paymentMethod === "dinheiro" && sale.cashReceived != null) {
     doc.text("Valor recebido", marginLeft, y);
