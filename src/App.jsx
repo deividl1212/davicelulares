@@ -1671,7 +1671,7 @@ function CashReportModal({ data, customers, onClose, justClosed }) {
 /* ============================================================
    ESTOQUE
    ============================================================ */
-const PRODUCT_CATEGORIES = ["Aparelho", "Acessório", "Peça de reposição", "Película", "Capinha", "Cabos", "Eletrônicos", "Pilhas e baterias"];
+const PRODUCT_CATEGORIES = ["Aparelho", "Acessório", "Peça de reposição", "Película", "Capinha", "Cabos", "Eletrônicos", "Pilhas e baterias", "Fontes e carregadores"];
 
 function Estoque({ data, update, notify }) {
   const [modalOpen, setModalOpen] = useState(false);
