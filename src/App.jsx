@@ -2239,7 +2239,7 @@ function LoginScreen({ onLogin }) {
       <div className="card" style={{ width: 340, padding: 28, boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, marginBottom: 22 }}>
           <div className="brand-mark" style={{ width: 44, height: 44 }}><Building2 size={22} /></div>
-          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17 }}>Sistema de Teste</div>
+          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17 }}>Davi Celulares</div>
           <div style={{ fontSize: 11.5, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Gestão de negócio</div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
