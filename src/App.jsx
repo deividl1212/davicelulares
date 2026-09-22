@@ -1300,6 +1300,177 @@ function Fornecedores({ data, update, notify }) {
    FINANCEIRO
    ============================================================ */
 /* ============================================================
+   CONTAS E DESPESAS
+   ============================================================ */
+const EXPENSE_CATEGORIES = {
+  fornecedor: { label: "Fornecedor", color: "blue" },
+  conta: { label: "Conta", color: "amber" },
+  despesa: { label: "Despesa", color: "red" },
+};
+
+function ContasDespesas({ data, update, notify }) {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [filter, setFilter] = useState("todas");
+  const [statusFilter, setStatusFilter] = useState("todas");
+  const [confirmDel, setConfirmDel] = useState(null);
+
+  const empty = { category: "conta", supplierId: "", description: "", amount: "", dueDate: "" };
+  const [form, setForm] = useState(empty);
+
+  const expenses = data.financeEntries.filter((f) => f.type === "pagar");
+
+  const openNew = () => { setForm(empty); setEditing(null); setModalOpen(true); };
+  const openEdit = (f) => {
+    setForm({ category: f.category || "despesa", supplierId: f.supplierId || "", description: f.description, amount: String(f.amount), dueDate: f.dueDate || "" });
+    setEditing(f.id); setModalOpen(true);
+  };
+
+  const save = () => {
+    if (!form.description.trim() || !form.amount) return;
+    const payload = {
+      type: "pagar",
+      category: form.category,
+      supplierId: form.supplierId || null,
+      description: form.description,
+      amount: parseFloat(String(form.amount).replace(",", ".")) || 0,
+      dueDate: form.dueDate,
+    };
+    if (editing) {
+      update("financeEntries", (arr) => arr.map((f) => (f.id === editing ? { ...f, ...payload } : f)));
+      notify("Lançamento atualizado");
+    } else {
+      update("financeEntries", (arr) => [...arr, { id: uid(), ...payload, status: "pendente", paidAt: null, createdAt: now() }]);
+      notify("Lançamento adicionado");
+    }
+    setModalOpen(false);
+  };
+
+  const markPaid = (id) => {
+    update("financeEntries", (arr) => arr.map((f) => (f.id === id ? { ...f, status: "pago", paidAt: now() } : f)));
+    notify("Lançamento baixado");
+  };
+
+  const remove = (id) => {
+    update("financeEntries", (arr) => arr.filter((f) => f.id !== id));
+    setConfirmDel(null);
+    notify("Lançamento removido");
+  };
+
+  const filtered = expenses.filter((f) => {
+    const matchesCat = filter === "todas" || (f.category || "despesa") === filter;
+    const matchesStatus = statusFilter === "todas" || f.status === statusFilter;
+    return matchesCat && matchesStatus;
+  });
+
+  const totalPendente = filtered.filter((f) => f.status === "pendente").reduce((s, f) => s + f.amount, 0);
+  const totalPago = filtered.filter((f) => f.status === "pago").reduce((s, f) => s + f.amount, 0);
+
+  return (
+    <div>
+      <div className="grid" style={{ gridTemplateColumns: "repeat(3,1fr)", marginBottom: 16 }}>
+        <div className="card stat-card">
+          <div className="stat-label">Total pendente</div>
+          <div className="stat-value red">{brl(totalPendente)}</div>
+          <div className="stat-foot"><Clock size={12} /> {filtered.filter((f) => f.status === "pendente").length} conta{filtered.filter((f) => f.status === "pendente").length !== 1 ? "s" : ""}</div>
+        </div>
+        <div className="card stat-card">
+          <div className="stat-label">Total pago</div>
+          <div className="stat-value green">{brl(totalPago)}</div>
+          <div className="stat-foot"><CheckCircle2 size={12} /> {filtered.filter((f) => f.status === "pago").length} conta{filtered.filter((f) => f.status === "pago").length !== 1 ? "s" : ""}</div>
+        </div>
+        <div className="card stat-card">
+          <div className="stat-label">Total geral</div>
+          <div className="stat-value blue">{brl(totalPendente + totalPago)}</div>
+          <div className="stat-foot"><DollarSign size={12} /> {filtered.length} lançamento{filtered.length !== 1 ? "s" : ""}</div>
+        </div>
+      </div>
+
+      <div className="toolbar">
+        <div className="toolbar-left">
+          <div className="tab-pills">
+            <div className={"tab-pill" + (filter === "todas" ? " active" : "")} onClick={() => setFilter("todas")}>Todas</div>
+            {Object.entries(EXPENSE_CATEGORIES).map(([k, v]) => (
+              <div key={k} className={"tab-pill" + (filter === k ? " active" : "")} onClick={() => setFilter(k)}>{v.label}</div>
+            ))}
+          </div>
+          <div className="tab-pills">
+            <div className={"tab-pill" + (statusFilter === "todas" ? " active" : "")} onClick={() => setStatusFilter("todas")}>Todos</div>
+            <div className={"tab-pill" + (statusFilter === "pendente" ? " active" : "")} onClick={() => setStatusFilter("pendente")}>Pendente</div>
+            <div className={"tab-pill" + (statusFilter === "pago" ? " active" : "")} onClick={() => setStatusFilter("pago")}>Pago</div>
+          </div>
+        </div>
+        <button className="btn btn-primary" onClick={openNew}><Plus size={15} /> Novo lançamento</button>
+      </div>
+
+      <div className="card" style={{ padding: 0 }}>
+        {filtered.length === 0 ? (
+          <div style={{ padding: 30 }}><EmptyState icon={<DollarSign size={28} />} title="Nenhum lançamento encontrado" /></div>
+        ) : (
+          <table>
+            <thead><tr><th>Categoria</th><th>Descrição</th><th>Fornecedor</th><th>Vencimento</th><th style={{ textAlign: "right" }}>Valor</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              {filtered.map((f) => {
+                const cat = EXPENSE_CATEGORIES[f.category || "despesa"];
+                const supplier = data.suppliers.find((s) => s.id === f.supplierId);
+                return (
+                  <tr key={f.id}>
+                    <td><span className={"badge " + cat.color}>{cat.label}</span></td>
+                    <td style={{ fontWeight: 600 }}>{f.description}</td>
+                    <td style={{ color: "var(--text-dim)" }}>{supplier ? supplier.name : "—"}</td>
+                    <td style={{ color: "var(--text-faint)" }}>{f.dueDate ? fmtDate(f.dueDate) : "—"}</td>
+                    <td className="mono" style={{ textAlign: "right", color: "var(--red)" }}>{brl(f.amount)}</td>
+                    <td><span className={"badge " + (f.status === "pago" ? "gray" : "red")}>{f.status === "pago" ? "Pago" : "Pendente"}</span></td>
+                    <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                      {f.status !== "pago" && <button className="btn btn-ghost btn-sm" onClick={() => markPaid(f.id)}><CheckCircle2 size={13} /></button>}
+                      <button className="btn btn-ghost btn-sm" onClick={() => openEdit(f)}><Edit2 size={13} /></button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDel(f.id)}><Trash2 size={13} /></button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {modalOpen && (
+        <Modal title={editing ? "Editar lançamento" : "Novo lançamento"} onClose={() => setModalOpen(false)}
+          footer={<><button className="btn btn-secondary" onClick={() => setModalOpen(false)}>Cancelar</button><button className="btn btn-primary" onClick={save}><Save size={14} /> Salvar</button></>}>
+          <Field label="Categoria">
+            <div className="tab-pills">
+              {Object.entries(EXPENSE_CATEGORIES).map(([k, v]) => (
+                <div key={k} className={"tab-pill" + (form.category === k ? " active" : "")} onClick={() => setForm({ ...form, category: k })}>{v.label}</div>
+              ))}
+            </div>
+          </Field>
+          {form.category === "fornecedor" && (
+            <Field label="Fornecedor">
+              <select className="input" value={form.supplierId} onChange={(e) => setForm({ ...form, supplierId: e.target.value })}>
+                <option value="">Selecione um fornecedor...</option>
+                {data.suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </Field>
+          )}
+          <Field label="Descrição"><input className="input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Ex: Compra de peças, aluguel, internet..." /></Field>
+          <div className="field-row" style={{ gridTemplateColumns: "1fr 1fr" }}>
+            <Field label="Valor (R$)"><input className="input" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="0,00" /></Field>
+            <Field label="Vencimento"><input type="date" className="input" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} /></Field>
+          </div>
+        </Modal>
+      )}
+
+      {confirmDel && (
+        <Modal title="Remover lançamento" onClose={() => setConfirmDel(null)}
+          footer={<><button className="btn btn-secondary" onClick={() => setConfirmDel(null)}>Cancelar</button><button className="btn btn-danger" onClick={() => remove(confirmDel)}>Remover</button></>}>
+          <p style={{ margin: 0, color: "var(--text-dim)", fontSize: 13.5 }}>Tem certeza que deseja remover este lançamento? Essa ação não pode ser desfeita.</p>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
    FINANCEIRO MENSAL
    ============================================================ */
 function FinanceiroMensal({ data, update, notify }) {
@@ -2264,7 +2435,7 @@ const NAV = [
   { key: "crediario", label: "Crediário", icon: Wallet },
   { key: "clientes", label: "Clientes", icon: Users },
   { key: "fornecedores", label: "Fornecedores", icon: Phone },
-  
+  { key: "contas-despesas", label: "Contas e Despesas", icon: TrendingDown },
   { key: "financeiro-mensal", label: "Financeiro Mensal", icon: TrendingUp },
   { key: "dashboard", label: "Faturamento do dia", icon: LayoutDashboard },
 ];
