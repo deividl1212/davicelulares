@@ -2259,6 +2259,7 @@ function LoginScreen({ onLogin }) {
 const NAV = [
   { key: "vendas", label: "Vendas / PDV", icon: ShoppingCart },
   { key: "estoque", label: "Estoque", icon: Package },
+  { key: "os", label: "Ordens de Serviço", icon: Wrench },
   { key: "compatibilidade", label: "Compatibilidade", icon: Smartphone },
   { key: "crediario", label: "Crediário", icon: Wallet },
   { key: "clientes", label: "Clientes", icon: Users },
@@ -2312,9 +2313,17 @@ export default function App() {
     <div className="app-root">
       <style>{STYLES}</style>
       <aside className={"sidebar" + (sidebarCollapsed ? " collapsed" : "")}>
-        <div className="brand">
-          <div className="brand-mark"><Building2 size={18} /></div>
-          {!sidebarCollapsed && (<div><div className="brand-name">Davi Celulares </div><div className="brand-sub">Gestão de negócio</div></div>)}
+                <div className="brand" style={{ padding: "6px 4px 22px 4px" }}>
+          <img
+            src="/logo.png"
+            alt="Davi Celulares"
+            style={{
+              height: sidebarCollapsed ? 34 : 46,
+              width: "auto",
+              maxWidth: "none",
+              objectFit: "contain",
+            }}
+          />
         </div>
         <nav className="nav-group">
           {NAV.map((item) => (
