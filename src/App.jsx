@@ -2519,15 +2519,16 @@ export default function App() {
     <div className="app-root">
       <style>{STYLES}</style>
       <aside className={"sidebar" + (sidebarCollapsed ? " collapsed" : "")}>
-        <div className="brand" style={{ padding: "4px 4px 20px 4px" }}>
+                <div className="brand" style={{ padding: "6px 4px 22px 4px", overflow: "hidden", height: sidebarCollapsed ? 40 : 60 }}>
           <img
             src="/logo.png"
             alt="Davi Celulares"
             style={{
-              height: sidebarCollapsed ? 42 : 64,
+              height: sidebarCollapsed ? 100 : 150,
               width: "auto",
               maxWidth: "none",
               objectFit: "contain",
+              transform: sidebarCollapsed ? "scale(1) translateX(-10px)" : "scale(1)",
             }}
           />
         </div>
@@ -2548,9 +2549,8 @@ export default function App() {
         </div>
       </aside>
       <div className="main">
-        <div className="topbar">
+                <div className="topbar">
           <div><h1>{TITLES[view][0]}</h1><div className="topbar-sub">{TITLES[view][1]}</div></div>
-          <button className="btn btn-secondary btn-sm">{data.storeConfig.name}</button>
         </div>
         <div className="content">
           {!loaded ? <div style={{ color: "var(--text-faint)", padding: 40, textAlign: "center" }}>Carregando dados...</div> : (
