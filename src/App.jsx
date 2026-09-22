@@ -30,8 +30,8 @@ const STYLES = `
     --text: #ECEEF1;
     --text-dim: #9BA1AC;
     --text-faint: #5C6470;
-    --accent: #5B7A9E;
-    --accent-dim: #6E8FB5;
+        --accent: #FFB020;
+    --accent-dim: #7A5A1E;
     --green: #34C77B;
     --red: #FF5C5C;
     --amber: #FFB020;
@@ -70,9 +70,9 @@ const STYLES = `
   }
   .sidebar-collapse-btn:hover { background: var(--surface-2); color: var(--text); }
   .brand { display: flex; align-items: center; gap: 10px; padding: 6px 10px 22px 10px; }
-    .brand-mark {
-    width: 34px; height: 34px; border-radius: 8px; background: var(--accent);
-    display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0;
+      .brand-mark {
+    width: 34px; height: 34px; border-radius: 8px; background: linear-gradient(135deg, var(--amber), #B87616);
+    display: flex; align-items: center; justify-content: center; color: #17140B; flex-shrink: 0;
   }
   .brand-name { font-family: var(--font-display); font-weight: 600; font-size: 15px; line-height: 1.2; }
   .brand-sub { font-size: 10.5px; color: var(--text-faint); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; }
@@ -83,7 +83,7 @@ const STYLES = `
     border: 1px solid transparent; transition: background .12s, color .12s; user-select: none;
   }
   .nav-item:hover { background: var(--surface-2); color: var(--text); }
-  .nav-item.active { background: var(--surface-2); color: var(--text); border-color: var(--border); font-weight: 600; }
+    .nav-item.active { background: var(--surface-2); color: var(--accent); border-color: var(--border); font-weight: 600; }
   .nav-item svg { flex-shrink: 0; }
   .sidebar-footer { margin-top: auto; padding: 12px 10px 4px 10px; border-top: 1px solid var(--border-soft); display: flex; align-items: center; gap: 8px; }
   .led { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
@@ -108,8 +108,8 @@ const STYLES = `
 
   .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 15px; border-radius: 8px; font-size: 13px; font-weight: 600; font-family: var(--font-body); cursor: pointer; border: 1px solid transparent; transition: filter .12s, background .12s; white-space: nowrap; }
   .btn:active { filter: brightness(0.94); }
-  .btn-primary { background: var(--accent); color: #fff; }
-  .btn-primary:hover { background: var(--accent-dim); }
+    .btn-primary { background: var(--accent); color: #1A1406; }
+  .btn-primary:hover { filter: brightness(1.08); }
   .btn-secondary { background: var(--surface-2); color: var(--text); border-color: var(--border); }
   .btn-secondary:hover { background: var(--surface-3); }
   .btn-danger { background: #FBEAE6; color: var(--red); border-color: #F0D2CB; }
@@ -134,11 +134,11 @@ const STYLES = `
   .mono { font-family: var(--font-mono); }
 
   .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 100px; font-size: 11px; font-weight: 600; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.03em; }
-  .badge.accent { background: var(--surface-3); color: var(--accent); }
-  .badge.green { background: #EAF4EE; color: var(--green); }
-  .badge.red { background: #FBEAE6; color: var(--red); }
-  .badge.amber { background: #FAF1E3; color: var(--amber); }
-  .badge.gray { background: var(--surface-2); color: var(--text-dim); }
+    .badge.accent { background: rgba(255,176,32,0.12); color: var(--accent); }
+  .badge.green { background: rgba(52,199,123,0.12); color: var(--green); }
+  .badge.red { background: rgba(255,92,92,0.12); color: var(--red); }
+  .badge.amber { background: rgba(255,176,32,0.12); color: var(--amber); }
+  .badge.gray { background: var(--surface-3); color: var(--text-dim); }
 
   .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 50px 20px; color: var(--text-faint); gap: 10px; text-align: center; }
   .empty-state svg { opacity: 0.35; }
@@ -167,7 +167,7 @@ const STYLES = `
   .qty-btn:hover { background: var(--surface-3); }
   .tab-pills { display: flex; gap: 6px; background: var(--surface-2); padding: 4px; border-radius: 9px; width: fit-content; }
   .tab-pill { padding: 6px 13px; border-radius: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; color: var(--text-dim); }
-  .tab-pill.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+    .tab-pill.active { background: var(--surface-3); color: var(--accent); }
 
   @media (max-width: 768px) {
     .app-root { flex-direction: column; }
@@ -2314,7 +2314,7 @@ export default function App() {
       <aside className={"sidebar" + (sidebarCollapsed ? " collapsed" : "")}>
         <div className="brand">
           <div className="brand-mark"><Building2 size={18} /></div>
-          {!sidebarCollapsed && (<div><div className="brand-name">Sistema de Teste</div><div className="brand-sub">Gestão de negócio</div></div>)}
+          {!sidebarCollapsed && (<div><div className="brand-name">Davi Celulares </div><div className="brand-sub">Gestão de negócio</div></div>)}
         </div>
         <nav className="nav-group">
           {NAV.map((item) => (
