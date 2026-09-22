@@ -21,7 +21,7 @@ import {
    ============================================================ */
 const STYLES = `
   :root {
-        --bg: #0E1013;
+    --bg: #0E1013;
     --surface: #16191F;
     --surface-2: #1E2229;
     --surface-3: #262B33;
@@ -30,7 +30,7 @@ const STYLES = `
     --text: #ECEEF1;
     --text-dim: #9BA1AC;
     --text-faint: #5C6470;
-        --accent: #FFB020;
+    --accent: #FFB020;
     --accent-dim: #7A5A1E;
     --green: #34C77B;
     --red: #FF5C5C;
@@ -70,7 +70,7 @@ const STYLES = `
   }
   .sidebar-collapse-btn:hover { background: var(--surface-2); color: var(--text); }
   .brand { display: flex; align-items: center; gap: 10px; padding: 6px 10px 22px 10px; }
-      .brand-mark {
+  .brand-mark {
     width: 34px; height: 34px; border-radius: 8px; background: linear-gradient(135deg, var(--amber), #B87616);
     display: flex; align-items: center; justify-content: center; color: #17140B; flex-shrink: 0;
   }
@@ -83,7 +83,7 @@ const STYLES = `
     border: 1px solid transparent; transition: background .12s, color .12s; user-select: none;
   }
   .nav-item:hover { background: var(--surface-2); color: var(--text); }
-    .nav-item.active { background: var(--surface-2); color: var(--accent); border-color: var(--border); font-weight: 600; }
+  .nav-item.active { background: var(--surface-2); color: var(--accent); border-color: var(--border); font-weight: 600; }
   .nav-item svg { flex-shrink: 0; }
   .sidebar-footer { margin-top: auto; padding: 12px 10px 4px 10px; border-top: 1px solid var(--border-soft); display: flex; align-items: center; gap: 8px; }
   .led { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
@@ -108,7 +108,7 @@ const STYLES = `
 
   .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; padding: 9px 15px; border-radius: 8px; font-size: 13px; font-weight: 600; font-family: var(--font-body); cursor: pointer; border: 1px solid transparent; transition: filter .12s, background .12s; white-space: nowrap; }
   .btn:active { filter: brightness(0.94); }
-    .btn-primary { background: var(--accent); color: #1A1406; }
+  .btn-primary { background: var(--accent); color: #1A1406; }
   .btn-primary:hover { filter: brightness(1.08); }
   .btn-secondary { background: var(--surface-2); color: var(--text); border-color: var(--border); }
   .btn-secondary:hover { background: var(--surface-3); }
@@ -119,7 +119,7 @@ const STYLES = `
   .btn-sm { padding: 6px 10px; font-size: 12px; }
   .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    .input, select.input, textarea.input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 9px 11px; color: var(--text); font-size: 13px; font-family: var(--font-body); outline: none; }
+  .input, select.input, textarea.input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 9px 11px; color: var(--text); font-size: 13px; font-family: var(--font-body); outline: none; }
   .input::placeholder { color: var(--text-faint); }
   .input:focus { border-color: var(--accent); }
   .field { display: flex; flex-direction: column; gap: 6px; }
@@ -134,7 +134,7 @@ const STYLES = `
   .mono { font-family: var(--font-mono); }
 
   .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 100px; font-size: 11px; font-weight: 600; font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.03em; }
-    .badge.accent { background: rgba(255,176,32,0.12); color: var(--accent); }
+  .badge.accent { background: rgba(255,176,32,0.12); color: var(--accent); }
   .badge.green { background: rgba(52,199,123,0.12); color: var(--green); }
   .badge.red { background: rgba(255,92,92,0.12); color: var(--red); }
   .badge.amber { background: rgba(255,176,32,0.12); color: var(--amber); }
@@ -161,13 +161,13 @@ const STYLES = `
   .toolbar-left { display: flex; gap: 10px; align-items: center; flex: 1; min-width: 220px; }
 
   .checklist-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--surface-2); border-radius: 8px; border: 1px solid var(--border-soft); }
-  .toast { position: fixed; bottom: 24px; right: 24px; z-index: 100; background: var(--text); color: #fff; border-radius: 10px; padding: 12px 18px; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+  .toast { position: fixed; bottom: 24px; right: 24px; z-index: 100; background: var(--accent); color: #fff; border-radius: 10px; padding: 12px 18px; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
   .cart-line { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border-soft); }
   .qty-btn { width: 22px; height: 22px; border-radius: 5px; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text); }
   .qty-btn:hover { background: var(--surface-3); }
   .tab-pills { display: flex; gap: 6px; background: var(--surface-2); padding: 4px; border-radius: 9px; width: fit-content; }
   .tab-pill { padding: 6px 13px; border-radius: 6px; font-size: 12.5px; font-weight: 600; cursor: pointer; color: var(--text-dim); }
-    .tab-pill.active { background: var(--surface-3); color: var(--accent); }
+  .tab-pill.active { background: var(--surface-3); color: var(--accent); }
 
   @media (max-width: 768px) {
     .app-root { flex-direction: column; }
@@ -721,7 +721,7 @@ function VendasPDV({ data, update, notify, storeName }) {
         <div style={{ display: "flex", gap: 8 }}>
           <button className="btn btn-secondary btn-sm" onClick={() => setMovModal("reforco")}><ArrowUpCircle size={14} /> Reforço</button>
           <button className="btn btn-secondary btn-sm" onClick={() => setMovModal("sangria")}><ArrowDownCircle size={14} /> Sangria</button>
-          <button className="btn btn-danger btn-sm" onClick={handleCloseCash}><Lock size={14} /> Fechar caixa</button>
+          <button className="btn btn-sm" style={{ background: "var(--accent)", color: "#fff" }} onClick={handleCloseCash}><Lock size={14} /> Fechar caixa</button>
         </div>
       </div>
 
@@ -936,6 +936,7 @@ function Estoque({ data, update, notify }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("todas");
   const [confirmDel, setConfirmDel] = useState(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [addingCategory, setAddingCategory] = useState(false);
@@ -974,12 +975,22 @@ function Estoque({ data, update, notify }) {
   };
   const remove = (id) => { update("products", (arr) => arr.filter((p) => p.id !== id)); setConfirmDel(null); notify("Produto removido"); };
 
-  const filtered = data.products.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()) || (p.code || "").toLowerCase().includes(search.toLowerCase()));
+  const filtered = data.products.filter((p) => {
+    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || (p.code || "").toLowerCase().includes(search.toLowerCase());
+    const matchesCategory = categoryFilter === "todas" || p.category === categoryFilter;
+    return matchesSearch && matchesCategory;
+  });
 
   return (
     <div>
       <div className="toolbar">
-        <div className="toolbar-left"><div className="search-box" style={{ maxWidth: 320 }}><Search size={15} /><input className="input" placeholder="Buscar por nome..." value={search} onChange={(e) => setSearch(e.target.value)} /></div></div>
+        <div className="toolbar-left">
+          <div className="search-box" style={{ maxWidth: 320 }}><Search size={15} /><input className="input" placeholder="Buscar por nome..." value={search} onChange={(e) => setSearch(e.target.value)} /></div>
+          <select className="input" style={{ maxWidth: 200 }} value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+            <option value="todas">Todas as categorias</option>
+            {categoriesList.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
         <div style={{ display: "flex", gap: 8 }}>
           <ReportButton onClick={() => setReportOpen(true)} />
           <button className="btn btn-primary" onClick={openNew}><Plus size={15} /> Novo produto</button>
@@ -1299,177 +1310,6 @@ function Fornecedores({ data, update, notify }) {
 /* ============================================================
    FINANCEIRO
    ============================================================ */
-/* ============================================================
-   CONTAS E DESPESAS
-   ============================================================ */
-const EXPENSE_CATEGORIES = {
-  fornecedor: { label: "Fornecedor", color: "blue" },
-  conta: { label: "Conta", color: "amber" },
-  despesa: { label: "Despesa", color: "red" },
-};
-
-function ContasDespesas({ data, update, notify }) {
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState(null);
-  const [filter, setFilter] = useState("todas");
-  const [statusFilter, setStatusFilter] = useState("todas");
-  const [confirmDel, setConfirmDel] = useState(null);
-
-  const empty = { category: "conta", supplierId: "", description: "", amount: "", dueDate: "" };
-  const [form, setForm] = useState(empty);
-
-  const expenses = data.financeEntries.filter((f) => f.type === "pagar");
-
-  const openNew = () => { setForm(empty); setEditing(null); setModalOpen(true); };
-  const openEdit = (f) => {
-    setForm({ category: f.category || "despesa", supplierId: f.supplierId || "", description: f.description, amount: String(f.amount), dueDate: f.dueDate || "" });
-    setEditing(f.id); setModalOpen(true);
-  };
-
-  const save = () => {
-    if (!form.description.trim() || !form.amount) return;
-    const payload = {
-      type: "pagar",
-      category: form.category,
-      supplierId: form.supplierId || null,
-      description: form.description,
-      amount: parseFloat(String(form.amount).replace(",", ".")) || 0,
-      dueDate: form.dueDate,
-    };
-    if (editing) {
-      update("financeEntries", (arr) => arr.map((f) => (f.id === editing ? { ...f, ...payload } : f)));
-      notify("Lançamento atualizado");
-    } else {
-      update("financeEntries", (arr) => [...arr, { id: uid(), ...payload, status: "pendente", paidAt: null, createdAt: now() }]);
-      notify("Lançamento adicionado");
-    }
-    setModalOpen(false);
-  };
-
-  const markPaid = (id) => {
-    update("financeEntries", (arr) => arr.map((f) => (f.id === id ? { ...f, status: "pago", paidAt: now() } : f)));
-    notify("Lançamento baixado");
-  };
-
-  const remove = (id) => {
-    update("financeEntries", (arr) => arr.filter((f) => f.id !== id));
-    setConfirmDel(null);
-    notify("Lançamento removido");
-  };
-
-  const filtered = expenses.filter((f) => {
-    const matchesCat = filter === "todas" || (f.category || "despesa") === filter;
-    const matchesStatus = statusFilter === "todas" || f.status === statusFilter;
-    return matchesCat && matchesStatus;
-  });
-
-  const totalPendente = filtered.filter((f) => f.status === "pendente").reduce((s, f) => s + f.amount, 0);
-  const totalPago = filtered.filter((f) => f.status === "pago").reduce((s, f) => s + f.amount, 0);
-
-  return (
-    <div>
-      <div className="grid" style={{ gridTemplateColumns: "repeat(3,1fr)", marginBottom: 16 }}>
-        <div className="card stat-card">
-          <div className="stat-label">Total pendente</div>
-          <div className="stat-value red">{brl(totalPendente)}</div>
-          <div className="stat-foot"><Clock size={12} /> {filtered.filter((f) => f.status === "pendente").length} conta{filtered.filter((f) => f.status === "pendente").length !== 1 ? "s" : ""}</div>
-        </div>
-        <div className="card stat-card">
-          <div className="stat-label">Total pago</div>
-          <div className="stat-value green">{brl(totalPago)}</div>
-          <div className="stat-foot"><CheckCircle2 size={12} /> {filtered.filter((f) => f.status === "pago").length} conta{filtered.filter((f) => f.status === "pago").length !== 1 ? "s" : ""}</div>
-        </div>
-        <div className="card stat-card">
-          <div className="stat-label">Total geral</div>
-          <div className="stat-value blue">{brl(totalPendente + totalPago)}</div>
-          <div className="stat-foot"><DollarSign size={12} /> {filtered.length} lançamento{filtered.length !== 1 ? "s" : ""}</div>
-        </div>
-      </div>
-
-      <div className="toolbar">
-        <div className="toolbar-left">
-          <div className="tab-pills">
-            <div className={"tab-pill" + (filter === "todas" ? " active" : "")} onClick={() => setFilter("todas")}>Todas</div>
-            {Object.entries(EXPENSE_CATEGORIES).map(([k, v]) => (
-              <div key={k} className={"tab-pill" + (filter === k ? " active" : "")} onClick={() => setFilter(k)}>{v.label}</div>
-            ))}
-          </div>
-          <div className="tab-pills">
-            <div className={"tab-pill" + (statusFilter === "todas" ? " active" : "")} onClick={() => setStatusFilter("todas")}>Todos</div>
-            <div className={"tab-pill" + (statusFilter === "pendente" ? " active" : "")} onClick={() => setStatusFilter("pendente")}>Pendente</div>
-            <div className={"tab-pill" + (statusFilter === "pago" ? " active" : "")} onClick={() => setStatusFilter("pago")}>Pago</div>
-          </div>
-        </div>
-        <button className="btn btn-primary" onClick={openNew}><Plus size={15} /> Novo lançamento</button>
-      </div>
-
-      <div className="card" style={{ padding: 0 }}>
-        {filtered.length === 0 ? (
-          <div style={{ padding: 30 }}><EmptyState icon={<DollarSign size={28} />} title="Nenhum lançamento encontrado" /></div>
-        ) : (
-          <table>
-            <thead><tr><th>Categoria</th><th>Descrição</th><th>Fornecedor</th><th>Vencimento</th><th style={{ textAlign: "right" }}>Valor</th><th>Status</th><th></th></tr></thead>
-            <tbody>
-              {filtered.map((f) => {
-                const cat = EXPENSE_CATEGORIES[f.category || "despesa"];
-                const supplier = data.suppliers.find((s) => s.id === f.supplierId);
-                return (
-                  <tr key={f.id}>
-                    <td><span className={"badge " + cat.color}>{cat.label}</span></td>
-                    <td style={{ fontWeight: 600 }}>{f.description}</td>
-                    <td style={{ color: "var(--text-dim)" }}>{supplier ? supplier.name : "—"}</td>
-                    <td style={{ color: "var(--text-faint)" }}>{f.dueDate ? fmtDate(f.dueDate) : "—"}</td>
-                    <td className="mono" style={{ textAlign: "right", color: "var(--red)" }}>{brl(f.amount)}</td>
-                    <td><span className={"badge " + (f.status === "pago" ? "gray" : "red")}>{f.status === "pago" ? "Pago" : "Pendente"}</span></td>
-                    <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                      {f.status !== "pago" && <button className="btn btn-ghost btn-sm" onClick={() => markPaid(f.id)}><CheckCircle2 size={13} /></button>}
-                      <button className="btn btn-ghost btn-sm" onClick={() => openEdit(f)}><Edit2 size={13} /></button>
-                      <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDel(f.id)}><Trash2 size={13} /></button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {modalOpen && (
-        <Modal title={editing ? "Editar lançamento" : "Novo lançamento"} onClose={() => setModalOpen(false)}
-          footer={<><button className="btn btn-secondary" onClick={() => setModalOpen(false)}>Cancelar</button><button className="btn btn-primary" onClick={save}><Save size={14} /> Salvar</button></>}>
-          <Field label="Categoria">
-            <div className="tab-pills">
-              {Object.entries(EXPENSE_CATEGORIES).map(([k, v]) => (
-                <div key={k} className={"tab-pill" + (form.category === k ? " active" : "")} onClick={() => setForm({ ...form, category: k })}>{v.label}</div>
-              ))}
-            </div>
-          </Field>
-          {form.category === "fornecedor" && (
-            <Field label="Fornecedor">
-              <select className="input" value={form.supplierId} onChange={(e) => setForm({ ...form, supplierId: e.target.value })}>
-                <option value="">Selecione um fornecedor...</option>
-                {data.suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </Field>
-          )}
-          <Field label="Descrição"><input className="input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Ex: Compra de peças, aluguel, internet..." /></Field>
-          <div className="field-row" style={{ gridTemplateColumns: "1fr 1fr" }}>
-            <Field label="Valor (R$)"><input className="input" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="0,00" /></Field>
-            <Field label="Vencimento"><input type="date" className="input" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} /></Field>
-          </div>
-        </Modal>
-      )}
-
-      {confirmDel && (
-        <Modal title="Remover lançamento" onClose={() => setConfirmDel(null)}
-          footer={<><button className="btn btn-secondary" onClick={() => setConfirmDel(null)}>Cancelar</button><button className="btn btn-danger" onClick={() => remove(confirmDel)}>Remover</button></>}>
-          <p style={{ margin: 0, color: "var(--text-dim)", fontSize: 13.5 }}>Tem certeza que deseja remover este lançamento? Essa ação não pode ser desfeita.</p>
-        </Modal>
-      )}
-    </div>
-  );
-}
-
 /* ============================================================
    FINANCEIRO MENSAL
    ============================================================ */
@@ -2410,7 +2250,7 @@ function LoginScreen({ onLogin }) {
       <div className="card" style={{ width: 340, padding: 28, boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, marginBottom: 22 }}>
           <div className="brand-mark" style={{ width: 44, height: 44 }}><Building2 size={22} /></div>
-          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17 }}>Davi Celulares</div>
+          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17 }}>Sistema de Teste</div>
           <div style={{ fontSize: 11.5, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Gestão de negócio</div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -2435,7 +2275,6 @@ const NAV = [
   { key: "crediario", label: "Crediário", icon: Wallet },
   { key: "clientes", label: "Clientes", icon: Users },
   { key: "fornecedores", label: "Fornecedores", icon: Phone },
-  { key: "contas-despesas", label: "Contas e Despesas", icon: TrendingDown },
   { key: "financeiro-mensal", label: "Financeiro Mensal", icon: TrendingUp },
   { key: "dashboard", label: "Faturamento do dia", icon: LayoutDashboard },
 ];
@@ -2485,12 +2324,12 @@ export default function App() {
     <div className="app-root">
       <style>{STYLES}</style>
       <aside className={"sidebar" + (sidebarCollapsed ? " collapsed" : "")}>
-                <div className="brand" style={{ padding: "6px 50px 22px 50px" }}>
+        <div className="brand" style={{ padding: "4px 4px 20px 4px" }}>
           <img
             src="/logo.png"
             alt="Davi Celulares"
             style={{
-              height: sidebarCollapsed ? 34 : 46,
+              height: sidebarCollapsed ? 42 : 64,
               width: "auto",
               maxWidth: "none",
               objectFit: "contain",
