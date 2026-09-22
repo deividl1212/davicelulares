@@ -2264,6 +2264,7 @@ const NAV = [
   { key: "crediario", label: "Crediário", icon: Wallet },
   { key: "clientes", label: "Clientes", icon: Users },
   { key: "fornecedores", label: "Fornecedores", icon: Phone },
+  
   { key: "financeiro-mensal", label: "Financeiro Mensal", icon: TrendingUp },
   { key: "dashboard", label: "Faturamento do dia", icon: LayoutDashboard },
 ];
@@ -2313,7 +2314,7 @@ export default function App() {
     <div className="app-root">
       <style>{STYLES}</style>
       <aside className={"sidebar" + (sidebarCollapsed ? " collapsed" : "")}>
-                <div className="brand" style={{ padding: "6px 4px 22px 4px" }}>
+                <div className="brand" style={{ padding: "6px 50px 22px 50px" }}>
           <img
             src="/logo.png"
             alt="Davi Celulares"
