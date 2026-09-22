@@ -2441,9 +2441,14 @@ function LoginScreen({ onLogin }) {
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", background: "var(--bg)", fontFamily: "var(--font-body)", color: "var(--text)" }}>
       <style>{STYLES}</style>
       <div className="card" style={{ width: 340, padding: 28, boxShadow: "0 4px 24px rgba(0,0,0,0.06)" }}>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, marginBottom: 22 }}>
-          <div className="brand-mark" style={{ width: 44, height: 44 }}><Building2 size={22} /></div>
-          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 17 }}>Sistema de Teste</div>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, marginBottom: 22 }}>
+          <div style={{ overflow: "hidden", height: 90, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <img
+              src="/logo.png"
+              alt="Davi Celulares"
+              style={{ height: 230, width: "auto", maxWidth: "none", objectFit: "contain" }}
+            />
+          </div>
           <div style={{ fontSize: 11.5, color: "var(--text-faint)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Gestão de negócio</div>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
