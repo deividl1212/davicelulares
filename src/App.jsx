@@ -21,20 +21,20 @@ import {
    ============================================================ */
 const STYLES = `
   :root {
-    --bg: #FFFFFF;
-    --surface: #FFFFFF;
-    --surface-2: #F7F7F8;
-    --surface-3: #EFEFF1;
-    --border: #000000;
-    --border-soft: #000000;
-    --text: #000000;
-    --text-dim: #404040;
-    --text-faint: #6B7280;
-    --accent: #334155;
-    --accent-dim: #475569;
-    --green: #3F8F5F;
-    --red: #C0533E;
-    --amber: #A87B2C;
+        --bg: #0E1013;
+    --surface: #16191F;
+    --surface-2: #1E2229;
+    --surface-3: #262B33;
+    --border: #2A2F38;
+    --border-soft: #20242C;
+    --text: #ECEEF1;
+    --text-dim: #9BA1AC;
+    --text-faint: #5C6470;
+    --accent: #5B7A9E;
+    --accent-dim: #6E8FB5;
+    --green: #34C77B;
+    --red: #FF5C5C;
+    --amber: #FFB020;
     --font-display: 'Space Grotesk', sans-serif;
     --font-body: 'Inter', sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
@@ -70,8 +70,8 @@ const STYLES = `
   }
   .sidebar-collapse-btn:hover { background: var(--surface-2); color: var(--text); }
   .brand { display: flex; align-items: center; gap: 10px; padding: 6px 10px 22px 10px; }
-  .brand-mark {
-    width: 34px; height: 34px; border-radius: 8px; background: var(--text);
+    .brand-mark {
+    width: 34px; height: 34px; border-radius: 8px; background: var(--accent);
     display: flex; align-items: center; justify-content: center; color: #fff; flex-shrink: 0;
   }
   .brand-name { font-family: var(--font-display); font-weight: 600; font-size: 15px; line-height: 1.2; }
@@ -119,7 +119,7 @@ const STYLES = `
   .btn-sm { padding: 6px 10px; font-size: 12px; }
   .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  .input, select.input, textarea.input { width: 100%; background: var(--surface); border: 1px solid #000000; border-radius: 7px; padding: 9px 11px; color: var(--text); font-size: 13px; font-family: var(--font-body); outline: none; }
+    .input, select.input, textarea.input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 7px; padding: 9px 11px; color: var(--text); font-size: 13px; font-family: var(--font-body); outline: none; }
   .input::placeholder { color: var(--text-faint); }
   .input:focus { border-color: var(--accent); }
   .field { display: flex; flex-direction: column; gap: 6px; }
