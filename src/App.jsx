@@ -161,7 +161,7 @@ const STYLES = `
   .toolbar-left { display: flex; gap: 10px; align-items: center; flex: 1; min-width: 220px; }
 
   .checklist-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; background: var(--surface-2); border-radius: 8px; border: 1px solid var(--border-soft); }
-  .toast { position: fixed; bottom: 24px; right: 24px; z-index: 100; background: var(--accent); color: #fff; border-radius: 10px; padding: 12px 18px; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+  .toast { position: fixed; bottom: 24px; right: 24px; z-index: 100; background: var(--accent); color: #000000; border-radius: 10px; padding: 12px 18px; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
   .cart-line { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border-soft); }
   .qty-btn { width: 22px; height: 22px; border-radius: 5px; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text); }
   .qty-btn:hover { background: var(--surface-3); }
@@ -721,7 +721,7 @@ function VendasPDV({ data, update, notify, storeName }) {
         <div style={{ display: "flex", gap: 8 }}>
           <button className="btn btn-secondary btn-sm" onClick={() => setMovModal("reforco")}><ArrowUpCircle size={14} /> Reforço</button>
           <button className="btn btn-secondary btn-sm" onClick={() => setMovModal("sangria")}><ArrowDownCircle size={14} /> Sangria</button>
-          <button className="btn btn-sm" style={{ background: "var(--accent)", color: "#fff" }} onClick={handleCloseCash}><Lock size={14} /> Fechar caixa</button>
+          <button className="btn btn-sm" style={{ background: "var(--accent)", color: "#000000" }} onClick={handleCloseCash}><Lock size={14} /> Fechar caixa</button>
         </div>
       </div>
 
@@ -2215,6 +2215,199 @@ function Compatibilidade({ data, update, notify }) {
 }
 
 /* ============================================================
+   GASTOS E DESPESAS
+   ============================================================ */
+const EXPENSE_CATEGORIES = {
+  fornecedor: { label: "Mercadoria", color: "blue" },
+  conta: { label: "Conta", color: "amber" },
+  despesa: { label: "Despesa", color: "red" },
+};
+
+function GastosDespesas({ data, update, notify }) {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [filter, setFilter] = useState("todas");
+  const [statusFilter, setStatusFilter] = useState("todas");
+  const [confirmDel, setConfirmDel] = useState(null);
+  const [reportOpen, setReportOpen] = useState(false);
+
+  const empty = { category: "conta", description: "", amount: "", dueDate: "" };
+  const [form, setForm] = useState(empty);
+
+  const expenses = data.financeEntries.filter((f) => f.type === "pagar");
+
+  const openNew = () => { setForm(empty); setEditing(null); setModalOpen(true); };
+  const openEdit = (f) => {
+    setForm({ category: f.category || "despesa", description: f.description, amount: String(f.amount), dueDate: f.dueDate || "" });
+    setEditing(f.id); setModalOpen(true);
+  };
+
+  const save = () => {
+    if (!form.description.trim() || !form.amount) return;
+    const payload = {
+      type: "pagar",
+      category: form.category,
+      description: form.description,
+      amount: parseFloat(String(form.amount).replace(",", ".")) || 0,
+      dueDate: form.dueDate,
+    };
+    if (editing) {
+      update("financeEntries", (arr) => arr.map((f) => (f.id === editing ? { ...f, ...payload } : f)));
+      notify("Lançamento atualizado");
+    } else {
+      update("financeEntries", (arr) => [...arr, { id: uid(), ...payload, status: "pendente", paidAt: null, createdAt: now() }]);
+      notify("Lançamento adicionado");
+    }
+    setModalOpen(false);
+  };
+
+  const markPaid = (id) => {
+    update("financeEntries", (arr) => arr.map((f) => (f.id === id ? { ...f, status: "pago", paidAt: now() } : f)));
+    notify("Lançamento baixado");
+  };
+
+  const remove = (id) => {
+    update("financeEntries", (arr) => arr.filter((f) => f.id !== id));
+    setConfirmDel(null);
+    notify("Lançamento removido");
+  };
+
+  const filtered = expenses.filter((f) => {
+    const matchesCat = filter === "todas" || (f.category || "despesa") === filter;
+    const matchesStatus = statusFilter === "todas" || f.status === statusFilter;
+    return matchesCat && matchesStatus;
+  });
+
+  const totalPendente = filtered.filter((f) => f.status === "pendente").reduce((s, f) => s + f.amount, 0);
+  const totalPago = filtered.filter((f) => f.status === "pago").reduce((s, f) => s + f.amount, 0);
+
+  return (
+    <div>
+      <div className="grid" style={{ gridTemplateColumns: "repeat(3,1fr)", marginBottom: 16 }}>
+        <div className="card stat-card">
+          <div className="stat-label">Total pendente</div>
+          <div className="stat-value red">{brl(totalPendente)}</div>
+          <div className="stat-foot">{filtered.filter((f) => f.status === "pendente").length} lançamento{filtered.filter((f) => f.status === "pendente").length !== 1 ? "s" : ""}</div>
+        </div>
+        <div className="card stat-card">
+          <div className="stat-label">Total pago</div>
+          <div className="stat-value green">{brl(totalPago)}</div>
+          <div className="stat-foot">{filtered.filter((f) => f.status === "pago").length} lançamento{filtered.filter((f) => f.status === "pago").length !== 1 ? "s" : ""}</div>
+        </div>
+        <div className="card stat-card">
+          <div className="stat-label">Total geral</div>
+          <div className="stat-value">{brl(totalPendente + totalPago)}</div>
+          <div className="stat-foot">{filtered.length} lançamento{filtered.length !== 1 ? "s" : ""}</div>
+        </div>
+      </div>
+
+      <div className="toolbar">
+        <div className="toolbar-left">
+          <div className="tab-pills">
+            <div className={"tab-pill" + (filter === "todas" ? " active" : "")} onClick={() => setFilter("todas")}>Todas</div>
+            {Object.entries(EXPENSE_CATEGORIES).map(([k, v]) => (
+              <div key={k} className={"tab-pill" + (filter === k ? " active" : "")} onClick={() => setFilter(k)}>{v.label}</div>
+            ))}
+          </div>
+          <div className="tab-pills">
+            <div className={"tab-pill" + (statusFilter === "todas" ? " active" : "")} onClick={() => setStatusFilter("todas")}>Todos</div>
+            <div className={"tab-pill" + (statusFilter === "pendente" ? " active" : "")} onClick={() => setStatusFilter("pendente")}>Pendente</div>
+            <div className={"tab-pill" + (statusFilter === "pago" ? " active" : "")} onClick={() => setStatusFilter("pago")}>Pago</div>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <ReportButton onClick={() => setReportOpen(true)} />
+          <button className="btn btn-primary" onClick={openNew}><Plus size={15} /> Novo lançamento</button>
+        </div>
+      </div>
+
+      <div className="card" style={{ padding: 0 }}>
+        {filtered.length === 0 ? (
+          <div style={{ padding: 30 }}><EmptyState icon={<DollarSign size={28} />} title="Nenhum lançamento encontrado" /></div>
+        ) : (
+          <table>
+            <thead><tr><th>Categoria</th><th>Descrição</th><th>Vencimento</th><th style={{ textAlign: "right" }}>Valor</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+              {filtered.map((f) => {
+                const cat = EXPENSE_CATEGORIES[f.category || "despesa"];
+                return (
+                  <tr key={f.id}>
+                    <td><span className={"badge " + cat.color}>{cat.label}</span></td>
+                    <td style={{ fontWeight: 600 }}>{f.description}</td>
+                    <td style={{ color: "var(--text-faint)" }}>{f.dueDate ? fmtDate(f.dueDate) : "—"}</td>
+                    <td className="mono" style={{ textAlign: "right", color: "var(--red)" }}>{brl(f.amount)}</td>
+                    <td><span className={"badge " + (f.status === "pago" ? "green" : "red")}>{f.status === "pago" ? "Pago" : "Pendente"}</span></td>
+                    <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                      {f.status !== "pago" && <button className="btn btn-ghost btn-sm" onClick={() => markPaid(f.id)}><CheckCircle2 size={13} /></button>}
+                      <button className="btn btn-ghost btn-sm" onClick={() => openEdit(f)}><Edit2 size={13} /></button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDel(f.id)}><Trash2 size={13} /></button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {modalOpen && (
+        <Modal title={editing ? "Editar lançamento" : "Novo lançamento"} onClose={() => setModalOpen(false)}
+          footer={<><button className="btn btn-secondary" onClick={() => setModalOpen(false)}>Cancelar</button><button className="btn btn-primary" onClick={save}><Save size={14} /> Salvar</button></>}>
+          <Field label="Categoria">
+            <div className="tab-pills">
+              {Object.entries(EXPENSE_CATEGORIES).map(([k, v]) => (
+                <div key={k} className={"tab-pill" + (form.category === k ? " active" : "")} onClick={() => setForm({ ...form, category: k })}>{v.label}</div>
+              ))}
+            </div>
+          </Field>
+          <Field label="Descrição"><input className="input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Ex: Compra de peças, aluguel, internet..." /></Field>
+          <div className="field-row" style={{ gridTemplateColumns: "1fr 1fr" }}>
+            <Field label="Valor (R$)"><input className="input" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="0,00" /></Field>
+            <Field label="Vencimento"><input type="date" className="input" value={form.dueDate} onChange={(e) => setForm({ ...form, dueDate: e.target.value })} /></Field>
+          </div>
+        </Modal>
+      )}
+
+      {confirmDel && (
+        <Modal title="Remover lançamento" onClose={() => setConfirmDel(null)}
+          footer={<><button className="btn btn-secondary" onClick={() => setConfirmDel(null)}>Cancelar</button><button className="btn btn-danger" onClick={() => remove(confirmDel)}>Remover</button></>}>
+          <p style={{ margin: 0, color: "var(--text-dim)", fontSize: 13.5 }}>Tem certeza que deseja remover este lançamento? Essa ação não pode ser desfeita.</p>
+        </Modal>
+      )}
+
+      {reportOpen && (
+        <ReportModal title="Relatório de gastos e despesas" storeName={data.storeConfig.name} onClose={() => setReportOpen(false)}>
+          <div className="grid" style={{ gridTemplateColumns: "repeat(3,1fr)", marginBottom: 16 }}>
+            <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">Total pendente</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(totalPendente)}</div></div>
+            <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">Total pago</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(totalPago)}</div></div>
+            <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">Total geral</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(totalPendente + totalPago)}</div></div>
+          </div>
+          {filtered.length === 0 ? <div style={{ color: "var(--text-faint)", fontSize: 13 }}>Nenhum lançamento encontrado.</div> : (
+            <table>
+              <thead><tr><th>Categoria</th><th>Descrição</th><th>Vencimento</th><th style={{ textAlign: "right" }}>Valor</th><th>Status</th></tr></thead>
+              <tbody>
+                {filtered.map((f) => {
+                  const cat = EXPENSE_CATEGORIES[f.category || "despesa"];
+                  return (
+                    <tr key={f.id}>
+                      <td>{cat.label}</td>
+                      <td>{f.description}</td>
+                      <td className="mono">{f.dueDate ? fmtDate(f.dueDate) : "—"}</td>
+                      <td className="mono" style={{ textAlign: "right" }}>{brl(f.amount)}</td>
+                      <td>{f.status === "pago" ? "Pago" : "Pendente"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </ReportModal>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
    LOGIN
    ============================================================ */
 function LoginScreen({ onLogin }) {
@@ -2275,6 +2468,7 @@ const NAV = [
   { key: "crediario", label: "Crediário", icon: Wallet },
   { key: "clientes", label: "Clientes", icon: Users },
   { key: "fornecedores", label: "Fornecedores", icon: Phone },
+  { key: "gastos", label: "Gastos e Despesas", icon: TrendingDown },
   { key: "financeiro-mensal", label: "Financeiro Mensal", icon: TrendingUp },
   { key: "dashboard", label: "Faturamento do dia", icon: LayoutDashboard },
 ];
@@ -2287,6 +2481,7 @@ const TITLES = {
   crediario: ["Crediário", "Promissórias e recebimentos parcelados"],
   clientes: ["Clientes", "Cadastro e histórico"],
   fornecedores: ["Fornecedores", "Contatos e cadastro"],
+  gastos: ["Gastos e Despesas", "Contas a pagar categorizadas"],
   "financeiro-mensal": ["Financeiro Mensal", "Relatório completo do mês"],
 };
 
@@ -2368,6 +2563,7 @@ export default function App() {
               {view === "crediario" && <Crediario data={data} update={update} notify={notify} storeName={data.storeConfig.name} />}
               {view === "clientes" && <Clientes data={data} update={update} notify={notify} />}
               {view === "fornecedores" && <Fornecedores data={data} update={update} notify={notify} />}
+              {view === "gastos" && <GastosDespesas data={data} update={update} notify={notify} />}
               {view === "financeiro-mensal" && <FinanceiroMensal data={data} update={update} notify={notify} />}
             </>
           )}
