@@ -939,8 +939,10 @@ function Estoque({ data, update, notify }) {
   const [categoryFilter, setCategoryFilter] = useState("todas");
   const [confirmDel, setConfirmDel] = useState(null);
   const [reportOpen, setReportOpen] = useState(false);
-  const [addingCategory, setAddingCategory] = useState(false);
+    const [addingCategory, setAddingCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [manageCategoriesOpen, setManageCategoriesOpen] = useState(false);
+  const [newCategoryDirect, setNewCategoryDirect] = useState("");
   const empty = { name: "", category: "Geral", sku: "", price: "", cost: "", qty: "", minQty: "2" };
   const [form, setForm] = useState(empty);
 
@@ -949,22 +951,43 @@ function Estoque({ data, update, notify }) {
   const openNew = () => { setForm(empty); setEditing(null); setModalOpen(true); };
   const openEdit = (p) => { setForm(p); setEditing(p.id); setModalOpen(true); };
 
-  const confirmNewCategory = () => {
+    const confirmNewCategory = () => {
     const name = newCategoryName.trim();
     if (!name) return;
     if (!categoriesList.includes(name)) {
-      update("categories", () => [...categoriesList, name]);
+      update("categories", (arr) => [...(arr || categoriesList), name]);
     }
     setForm({ ...form, category: name });
     setNewCategoryName("");
     setAddingCategory(false);
   };
 
+  const deleteCategory = (name) => {
+    update("categories", (arr) => (arr || categoriesList).filter((c) => c !== name));
+    notify("Categoria removida");
+  };
+
+  const addCategoryDirect = () => {
+    const name = newCategoryDirect.trim();
+    if (!name) return;
+    if (categoriesList.includes(name)) { notify("Essa categoria já existe"); return; }
+    update("categories", (arr) => [...(arr || categoriesList), name]);
+    setNewCategoryDirect("");
+    notify("Categoria criada");
+  };
+
   const save = () => {
     if (!form.name.trim()) return;
+    let category = form.category;
+    if (addingCategory && newCategoryName.trim()) {
+      category = newCategoryName.trim();
+      if (!categoriesList.includes(category)) {
+        update("categories", (arr) => [...(arr || categoriesList), category]);
+      }
+    }
     const payload = {
       id: editing || uid(), code: editing ? form.code : genProductCode(data.products),
-      name: form.name, category: form.category, sku: form.sku,
+      name: form.name, category, sku: form.sku,
       price: parseFloat(String(form.price).replace(",", ".")) || 0,
       cost: parseFloat(String(form.cost).replace(",", ".")) || 0,
       qty: parseInt(form.qty) || 0, minQty: parseInt(form.minQty) || 0,
@@ -986,10 +1009,11 @@ function Estoque({ data, update, notify }) {
       <div className="toolbar">
         <div className="toolbar-left">
           <div className="search-box" style={{ maxWidth: 320 }}><Search size={15} /><input className="input" placeholder="Buscar por nome..." value={search} onChange={(e) => setSearch(e.target.value)} /></div>
-          <select className="input" style={{ maxWidth: 200 }} value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+                    <select className="input" style={{ maxWidth: 200 }} value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
             <option value="todas">Todas as categorias</option>
             {categoriesList.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
+          <button className="btn btn-ghost btn-sm" onClick={() => setManageCategoriesOpen(true)}>Gerenciar categorias</button>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <ReportButton onClick={() => setReportOpen(true)} />
@@ -1056,10 +1080,34 @@ function Estoque({ data, update, notify }) {
           </div>
         </Modal>
       )}
-      {confirmDel && (
+            {confirmDel && (
         <Modal title="Remover produto" onClose={() => setConfirmDel(null)}
           footer={<><button className="btn btn-secondary" onClick={() => setConfirmDel(null)}>Cancelar</button><button className="btn btn-danger" onClick={() => remove(confirmDel)}>Remover</button></>}>
           <p style={{ margin: 0, color: "var(--text-dim)", fontSize: 13.5 }}>Tem certeza que deseja remover este produto? Essa ação não pode ser desfeita.</p>
+        </Modal>
+      )}
+      {manageCategoriesOpen && (
+        <Modal title="Gerenciar categorias" onClose={() => setManageCategoriesOpen(false)}
+          footer={<button className="btn btn-secondary" onClick={() => setManageCategoriesOpen(false)}>Fechar</button>}>
+          <Field label="Nova categoria">
+            <div style={{ display: "flex", gap: 6 }}>
+              <input className="input" value={newCategoryDirect} onChange={(e) => setNewCategoryDirect(e.target.value)} placeholder="Nome da categoria" onKeyDown={(e) => e.key === "Enter" && addCategoryDirect()} />
+              <button className="btn btn-primary btn-sm" onClick={addCategoryDirect}><Plus size={14} /> Adicionar</button>
+            </div>
+          </Field>
+          {categoriesList.length === 0 ? (
+            <div style={{ color: "var(--text-faint)", fontSize: 13 }}>Nenhuma categoria cadastrada.</div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {categoriesList.map((c) => (
+                <div key={c} className="checklist-item">
+                  <span style={{ fontSize: 13.5 }}>{c}</span>
+                  <button className="btn btn-ghost btn-sm" onClick={() => deleteCategory(c)}><Trash2 size={13} /></button>
+                </div>
+              ))}
+            </div>
+          )}
+          <p style={{ margin: "12px 0 0 0", color: "var(--text-faint)", fontSize: 11.5 }}>Excluir uma categoria não altera os produtos já cadastrados com ela — apenas ela deixa de aparecer na lista de opções.</p>
         </Modal>
       )}
       {reportOpen && (
