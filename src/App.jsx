@@ -3104,25 +3104,7 @@ function FaturamentoGeral({ data, update, notify }) {
         </div>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: "repeat(3,1fr)", marginBottom: 16 }}>
-        <div className="card stat-card">
-          <div className="stat-label">A pagar (em aberto)</div>
-          <div className="stat-value red">{brl(aPagar)}</div>
-          <div className="stat-foot">contas já lançadas e não pagas</div>
-        </div>
-        <div className="card stat-card">
-          <div className="stat-label">A receber (em aberto)</div>
-          <div className="stat-value">{brl(aReceber)}</div>
-          <div className="stat-foot">promissórias {brl(aReceberCrediario)} · outros {brl(aReceberManual)}</div>
-        </div>
-        <div className="card stat-card">
-          <div className="stat-label">Saldo projetado</div>
-          <div className="stat-value" style={{ color: good(projetado) }}>{brl(projetado)}</div>
-          <div className="stat-foot">saldo + a receber − a pagar</div>
-        </div>
-      </div>
-
-      <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+           <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
         <div className="card">
           <div className="card-title">Composição do saldo</div>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--border-soft)", fontSize: 13 }}>
@@ -3155,7 +3137,7 @@ function FaturamentoGeral({ data, update, notify }) {
               <span style={{ width: 48, textAlign: "right", fontSize: 11, color: "var(--text-faint)" }}>{pctOf(byMethod[k] || 0)}</span>
             </div>
           ))}
-          <p style={{ margin: "12px 0 0 0", fontSize: 11.5, color: "var(--text-faint)" }}>No crediário conta só o que já foi pago (entrada e recebimentos). O saldo em aberto aparece em "A receber".</p>
+                    <p style={{ margin: "12px 0 0 0", fontSize: 11.5, color: "var(--text-faint)" }}>No crediário conta só o que já foi pago (entrada e recebimentos).</p>
         </div>
       </div>
 
@@ -3167,12 +3149,7 @@ function FaturamentoGeral({ data, update, notify }) {
             <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">Total que saiu</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(totalSaiu)}</div></div>
             <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">Disponível para gastar</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(disponivel)}</div></div>
           </div>
-          <div className="grid" style={{ gridTemplateColumns: "repeat(3,1fr)", marginBottom: 16 }}>
-            <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">A pagar (em aberto)</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(aPagar)}</div></div>
-            <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">A receber (em aberto)</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(aReceber)}</div></div>
-            <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">Saldo projetado</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(projetado)}</div></div>
-          </div>
-          <div className="card" style={{ padding: 14, marginBottom: 16 }}>
+                    <div className="card" style={{ padding: 14, marginBottom: 16 }}>
             <div className="card-title" style={{ marginBottom: 10 }}>Composição do saldo</div>
             <table><tbody>
               <tr><td>Saldo inicial</td><td className="mono" style={{ textAlign: "right" }}>{brl(initial)}</td></tr>
