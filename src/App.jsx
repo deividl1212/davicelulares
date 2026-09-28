@@ -717,13 +717,8 @@ function VendasPDV({ data, update, notify, storeName }) {
 
   return (
     <div>
-      <div className="toolbar">
+            <div className="toolbar">
         <div className="toolbar-left"><span className="badge green"><span className="led on" /> Caixa aberto — {fmtDateTime(openCash.openedAt)}</span></div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button className="btn btn-secondary btn-sm" onClick={() => setMovModal("reforco")}><ArrowUpCircle size={14} /> Reforço</button>
-          <button className="btn btn-secondary btn-sm" onClick={() => setMovModal("sangria")}><ArrowDownCircle size={14} /> Sangria</button>
-          <button className="btn btn-sm" style={{ background: "var(--accent)", color: "#000000" }} onClick={handleCloseCash}><Lock size={14} /> Fechar caixa</button>
-        </div>
       </div>
 
       <div className="grid" style={{ gridTemplateColumns: "1.4fr 1fr" }}>
@@ -2781,6 +2776,263 @@ function GastosPessoais({ data, update, notify }) {
 }
 
 /* ============================================================
+   CONTROLE DE CAIXA
+   ============================================================ */
+function ControleCaixa({ data, update, notify }) {
+  const openCash = data.cashRegisters.find((c) => c.status === "aberto");
+  const num = (v) => parseFloat(String(v).replace(",", ".")) || 0;
+
+  const [openAmount, setOpenAmount] = useState("");
+  const [movModal, setMovModal] = useState(null); // 'sangria' | 'reforco'
+  const [movAmount, setMovAmount] = useState("");
+  const [movReason, setMovReason] = useState("");
+  const [expModal, setExpModal] = useState(false);
+  const [expForm, setExpForm] = useState({ description: "", amount: "", paidWith: "caixa" });
+  const [closeModal, setCloseModal] = useState(false);
+  const [countedTxt, setCountedTxt] = useState("");
+
+  // Vendas deste caixa (crediário não entra no controle de caixa)
+  const regSales = openCash ? data.sales.filter((s) => s.cashRegisterId === openCash.id && s.paymentMethod !== "crediario") : [];
+  const sumBy = (m) => regSales.filter((s) => s.paymentMethod === m).reduce((a, s) => a + s.total, 0);
+  const countBy = (m) => regSales.filter((s) => s.paymentMethod === m).length;
+  const cashSales = sumBy("dinheiro");
+  const pixTotal = sumBy("pix");
+  const creditoTotal = sumBy("credito");
+  const debitoTotal = sumBy("debito");
+  const totalVendido = cashSales + pixTotal + creditoTotal + debitoTotal;
+
+  const reinforcements = openCash ? (openCash.reinforcements || []) : [];
+  const withdrawals = openCash ? (openCash.withdrawals || []) : [];
+  const reinfTotal = reinforcements.reduce((a, r) => a + r.amount, 0);
+  const withTotal = withdrawals.reduce((a, w) => a + w.amount, 0);
+  const regExpenses = openCash ? (data.financeEntries || []).filter((f) => f.cashRegisterId === openCash.id) : [];
+  const cashExpensesTotal = regExpenses.filter((f) => f.paidWith === "caixa").reduce((a, f) => a + f.amount, 0);
+  const opening = openCash ? (openCash.openingAmount || 0) : 0;
+  const dinheiroNoCaixa = opening + cashSales + reinfTotal - withTotal - cashExpensesTotal;
+
+  const movements = [
+    ...reinforcements.map((r) => ({ id: r.id, at: r.at, label: "Reforço" + (r.reason ? " — " + r.reason : ""), value: r.amount, outside: false })),
+    ...withdrawals.map((w) => ({ id: w.id, at: w.at, label: "Sangria" + (w.reason ? " — " + w.reason : ""), value: -w.amount, outside: false })),
+    ...regExpenses.map((f) => ({ id: f.id, at: f.paidAt || f.createdAt, label: "Gasto — " + f.description, value: f.paidWith === "caixa" ? -f.amount : f.amount, outside: f.paidWith !== "caixa" })),
+  ].sort((a, b) => new Date(b.at) - new Date(a.at));
+
+  const closedRegisters = data.cashRegisters.filter((c) => c.status === "fechado").sort((a, b) => new Date(b.closedAt) - new Date(a.closedAt)).slice(0, 8);
+
+  const handleOpenCash = () => {
+    update("cashRegisters", (arr) => [...arr, { id: uid(), openedAt: now(), closedAt: null, openingAmount: num(openAmount), status: "aberto", withdrawals: [], reinforcements: [] }]);
+    setOpenAmount("");
+    notify("Caixa aberto com sucesso");
+  };
+
+  const addMovement = () => {
+    const amount = num(movAmount);
+    if (!amount || !openCash) return;
+    const field = movModal === "sangria" ? "withdrawals" : "reinforcements";
+    update("cashRegisters", (arr) => arr.map((c) => (c.id === openCash.id ? { ...c, [field]: [...(c[field] || []), { id: uid(), amount, reason: movReason, at: now() }] } : c)));
+    setMovModal(null); setMovAmount(""); setMovReason("");
+    notify(movModal === "sangria" ? "Sangria registrada" : "Reforço registrado");
+  };
+
+  const saveExpense = () => {
+    const amount = num(expForm.amount);
+    if (!expForm.description.trim() || !amount || !openCash) return;
+    update("financeEntries", (arr) => [...arr, {
+      id: uid(), type: "pagar", category: "despesa", description: expForm.description.trim(), amount,
+      dueDate: "", status: "pago", paidAt: now(), createdAt: now(),
+      cashRegisterId: openCash.id, paidWith: expForm.paidWith,
+    }]);
+    setExpModal(false);
+    setExpForm({ description: "", amount: "", paidWith: "caixa" });
+    notify(expForm.paidWith === "caixa" ? "Gasto registrado e descontado do caixa" : "Gasto registrado");
+  };
+
+  const countedFilled = countedTxt.trim() !== "";
+  const diff = countedFilled ? Math.round((num(countedTxt) - dinheiroNoCaixa) * 100) / 100 : null;
+
+  const handleCloseCash = () => {
+    if (!openCash) return;
+    update("cashRegisters", (arr) => arr.map((c) => (c.id === openCash.id ? {
+      ...c, status: "fechado", closedAt: now(),
+      expectedCash: dinheiroNoCaixa, countedCash: countedFilled ? num(countedTxt) : null, difference: diff, totalSold: totalVendido,
+    } : c)));
+    setCloseModal(false);
+    setCountedTxt("");
+    notify(diff === null ? "Caixa fechado" : diff === 0 ? "Caixa fechado — conferido, bateu certinho" : "Caixa fechado — " + (diff > 0 ? "sobra de " : "falta de ") + brl(Math.abs(diff)));
+  };
+
+  const historyCard = closedRegisters.length === 0 ? null : (
+    <div className="card" style={{ padding: 0, marginTop: 16 }}>
+      <div className="card-title" style={{ padding: "16px 16px 0 16px" }}>Caixas fechados</div>
+      <table>
+        <thead><tr><th>Aberto em</th><th>Fechado em</th><th style={{ textAlign: "right" }}>Vendido</th><th style={{ textAlign: "right" }}>Esperado</th><th style={{ textAlign: "right" }}>Contado</th><th style={{ textAlign: "right" }}>Diferença</th></tr></thead>
+        <tbody>
+          {closedRegisters.map((c) => (
+            <tr key={c.id}>
+              <td className="mono" style={{ color: "var(--text-faint)" }}>{fmtDateTime(c.openedAt)}</td>
+              <td className="mono" style={{ color: "var(--text-faint)" }}>{fmtDateTime(c.closedAt)}</td>
+              <td className="mono" style={{ textAlign: "right" }}>{c.totalSold != null ? brl(c.totalSold) : "—"}</td>
+              <td className="mono" style={{ textAlign: "right" }}>{c.expectedCash != null ? brl(c.expectedCash) : "—"}</td>
+              <td className="mono" style={{ textAlign: "right" }}>{c.countedCash != null ? brl(c.countedCash) : "—"}</td>
+              <td className="mono" style={{ textAlign: "right", color: c.difference == null ? "var(--text-faint)" : c.difference < 0 ? "var(--red)" : "var(--green)" }}>
+                {c.difference == null ? "—" : c.difference === 0 ? "Bateu" : (c.difference > 0 ? "+" : "−") + brl(Math.abs(c.difference))}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  if (!openCash) {
+    return (
+      <div>
+        <div className="card" style={{ maxWidth: 420 }}>
+          <div className="card-title">Abrir caixa</div>
+          <p style={{ color: "var(--text-dim)", fontSize: 13, marginTop: 0, marginBottom: 16 }}>Informe o valor em dinheiro que existe no caixa agora para começar o controle.</p>
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+            <Field label="Valor de abertura (R$)"><input className="input" placeholder="0,00" value={openAmount} onChange={(e) => setOpenAmount(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleOpenCash()} /></Field>
+            <button className="btn btn-primary" onClick={handleOpenCash}><Unlock size={15} /> Abrir caixa</button>
+          </div>
+        </div>
+        {historyCard}
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="toolbar">
+        <div className="toolbar-left"><span className="badge green"><span className="led on" /> Caixa aberto — {fmtDateTime(openCash.openedAt)}</span></div>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button className="btn btn-secondary btn-sm" onClick={() => setMovModal("reforco")}><ArrowUpCircle size={14} /> Reforço</button>
+          <button className="btn btn-secondary btn-sm" onClick={() => setMovModal("sangria")}><ArrowDownCircle size={14} /> Sangria</button>
+          <button className="btn btn-secondary btn-sm" onClick={() => setExpModal(true)}><Minus size={14} /> Registrar gasto</button>
+          <button className="btn btn-sm" style={{ background: "var(--accent)", color: "#000000" }} onClick={() => setCloseModal(true)}><Lock size={14} /> Fechar caixa</button>
+        </div>
+      </div>
+
+      <div className="grid" style={{ gridTemplateColumns: "repeat(5,1fr)", marginBottom: 16 }}>
+        <div className="card stat-card">
+          <div className="stat-label">Dinheiro no caixa</div>
+          <div className="stat-value" style={{ color: dinheiroNoCaixa >= 0 ? "var(--accent)" : "var(--red)" }}>{brl(dinheiroNoCaixa)}</div>
+          <div className="stat-foot">na gaveta agora</div>
+        </div>
+        <div className="card stat-card">
+          <div className="stat-label">Pix</div>
+          <div className="stat-value">{brl(pixTotal)}</div>
+          <div className="stat-foot"><Receipt size={12} /> {countBy("pix")} venda{countBy("pix") !== 1 ? "s" : ""}</div>
+        </div>
+        <div className="card stat-card">
+          <div className="stat-label">Cartão crédito</div>
+          <div className="stat-value">{brl(creditoTotal)}</div>
+          <div className="stat-foot"><Receipt size={12} /> {countBy("credito")} venda{countBy("credito") !== 1 ? "s" : ""}</div>
+        </div>
+        <div className="card stat-card">
+          <div className="stat-label">Cartão débito</div>
+          <div className="stat-value">{brl(debitoTotal)}</div>
+          <div className="stat-foot"><Receipt size={12} /> {countBy("debito")} venda{countBy("debito") !== 1 ? "s" : ""}</div>
+        </div>
+        <div className="card stat-card">
+          <div className="stat-label">Total vendido</div>
+          <div className="stat-value">{brl(totalVendido)}</div>
+          <div className="stat-foot">todas as formas</div>
+        </div>
+      </div>
+
+      <div className="grid" style={{ gridTemplateColumns: "1fr 1.4fr" }}>
+        <div className="card">
+          <div className="card-title">Composição do dinheiro</div>
+          {[
+            ["Abertura", opening, 1],
+            [`Vendas em dinheiro (${countBy("dinheiro")})`, cashSales, 1],
+            ["Reforços", reinfTotal, 1],
+            ["Sangrias", withTotal, -1],
+            ["Gastos pagos com dinheiro do caixa", cashExpensesTotal, -1],
+          ].map(([label, value, sign]) => (
+            <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--border-soft)", fontSize: 13 }}>
+              <span style={{ color: "var(--text-dim)" }}>{label}</span>
+              <span className="mono" style={{ color: sign < 0 && value > 0 ? "var(--red)" : "var(--text)" }}>{sign < 0 && value > 0 ? "− " : ""}{brl(value)}</span>
+            </div>
+          ))}
+          <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 12, alignItems: "baseline" }}>
+            <span style={{ fontWeight: 600 }}>Dinheiro no caixa</span>
+            <span className="mono" style={{ fontWeight: 700, fontSize: 16 }}>{brl(dinheiroNoCaixa)}</span>
+          </div>
+          <p style={{ margin: "12px 0 0 0", fontSize: 11.5, color: "var(--text-faint)" }}>Pix e cartão não entram na gaveta. Vendas no crediário não são registradas aqui.</p>
+        </div>
+
+        <div className="card" style={{ padding: 0 }}>
+          <div className="card-title" style={{ padding: "16px 16px 0 16px" }}>Movimentações do caixa</div>
+          {movements.length === 0 ? (
+            <div style={{ padding: 24 }}><EmptyState icon={<DollarSign size={26} />} title="Nenhuma movimentação ainda" sub="Reforços, sangrias e gastos aparecem aqui" /></div>
+          ) : (
+            <table>
+              <thead><tr><th>Hora</th><th>Movimento</th><th style={{ textAlign: "right" }}>Valor</th></tr></thead>
+              <tbody>
+                {movements.map((m) => (
+                  <tr key={m.id}>
+                    <td className="mono" style={{ color: "var(--text-faint)" }}>{fmtDateTime(m.at)}</td>
+                    <td>{m.label}{m.outside && <span className="badge gray" style={{ marginLeft: 8 }}>fora do caixa</span>}</td>
+                    <td className="mono" style={{ textAlign: "right", color: m.outside ? "var(--text-faint)" : m.value < 0 ? "var(--red)" : "var(--green)" }}>
+                      {m.outside ? brl(m.value) : (m.value < 0 ? "− " : "+ ") + brl(Math.abs(m.value))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+
+      {historyCard}
+
+      {movModal && (
+        <Modal title={movModal === "sangria" ? "Registrar sangria" : "Registrar reforço"} onClose={() => setMovModal(null)}
+          footer={<><button className="btn btn-secondary" onClick={() => setMovModal(null)}>Cancelar</button><button className="btn btn-primary" onClick={addMovement}>Confirmar</button></>}>
+          <Field label="Valor (R$)"><input className="input" value={movAmount} onChange={(e) => setMovAmount(e.target.value)} placeholder="0,00" /></Field>
+          <Field label="Motivo"><input className="input" value={movReason} onChange={(e) => setMovReason(e.target.value)} placeholder="Opcional" /></Field>
+        </Modal>
+      )}
+
+      {expModal && (
+        <Modal title="Registrar gasto" onClose={() => setExpModal(false)}
+          footer={<><button className="btn btn-secondary" onClick={() => setExpModal(false)}>Cancelar</button><button className="btn btn-primary" onClick={saveExpense}><Save size={14} /> Registrar</button></>}>
+          <Field label="Descrição"><input className="input" value={expForm.description} onChange={(e) => setExpForm({ ...expForm, description: e.target.value })} placeholder="Ex: Água, lanche, material..." /></Field>
+          <Field label="Valor (R$)"><input className="input" value={expForm.amount} onChange={(e) => setExpForm({ ...expForm, amount: e.target.value })} placeholder="0,00" /></Field>
+          <Field label="Pago com">
+            <div className="tab-pills">
+              <div className={"tab-pill" + (expForm.paidWith === "caixa" ? " active" : "")} onClick={() => setExpForm({ ...expForm, paidWith: "caixa" })}>Dinheiro do caixa</div>
+              <div className={"tab-pill" + (expForm.paidWith === "outro" ? " active" : "")} onClick={() => setExpForm({ ...expForm, paidWith: "outro" })}>Pix ou cartão</div>
+            </div>
+          </Field>
+          <p style={{ margin: 0, fontSize: 11.5, color: "var(--text-faint)" }}>
+            {expForm.paidWith === "caixa" ? "O valor será descontado do dinheiro do caixa." : "O gasto será registrado, mas não desconta do dinheiro do caixa."} Ele também aparece em Gastos e Despesas e nos cards de gastos do faturamento.
+          </p>
+        </Modal>
+      )}
+
+      {closeModal && (
+        <Modal title="Fechar caixa" onClose={() => setCloseModal(false)}
+          footer={<><button className="btn btn-secondary" onClick={() => setCloseModal(false)}>Cancelar</button><button className="btn btn-sm" style={{ background: "var(--accent)", color: "#000000", padding: "9px 15px" }} onClick={handleCloseCash}><Lock size={14} /> Fechar caixa</button></>}>
+          <div className="card" style={{ padding: 14 }}>
+            <div className="stat-label">Dinheiro esperado no caixa</div>
+            <div className="mono" style={{ fontSize: 22, fontWeight: 700 }}>{brl(dinheiroNoCaixa)}</div>
+          </div>
+          <Field label="Dinheiro contado na gaveta (R$) — opcional">
+            <input className="input" value={countedTxt} onChange={(e) => setCountedTxt(e.target.value)} placeholder="Conte o dinheiro e informe aqui" />
+          </Field>
+          {diff !== null && (
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: diff === 0 ? "var(--green)" : diff > 0 ? "var(--green)" : "var(--red)" }}>
+              {diff === 0 ? "Bateu certinho!" : diff > 0 ? "Sobra de " + brl(diff) : "Falta de " + brl(Math.abs(diff))}
+            </div>
+          )}
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
    LOGIN
    ============================================================ */
 function LoginScreen({ onLogin }) {
@@ -2839,6 +3091,7 @@ function LoginScreen({ onLogin }) {
    APP
    ============================================================ */
 const NAV = [
+    { key: "caixa", label: "Controle de Caixa", icon: Lock },
   { key: "vendas", label: "Vendas / PDV", icon: ShoppingCart },
   { key: "estoque", label: "Estoque", icon: Package },
   { key: "os", label: "Ordens de Serviço", icon: Wrench },
@@ -2853,6 +3106,7 @@ const NAV = [
 ];
 const TITLES = {
   dashboard: ["Faturamento do dia", "Vendas, caixa e movimentações de hoje"],
+    caixa: ["Controle de Caixa", "Dinheiro, pix e cartão do caixa em tempo real"],
   vendas: ["Vendas / PDV", "Frente de caixa e controle de caixa"],
   estoque: ["Estoque", "Produtos e controle de quantidade"],
   os: ["Ordens de Serviço", "Acompanhamento de reparos e serviços"],
@@ -2936,6 +3190,7 @@ export default function App() {
           {!loaded ? <div style={{ color: "var(--text-faint)", padding: 40, textAlign: "center" }}>Carregando dados...</div> : (
             <>
               {view === "dashboard" && <Dashboard data={data} setView={setView} />}
+                           {view === "caixa" && <ControleCaixa data={data} update={update} notify={notify} />}
               {view === "vendas" && <VendasPDV data={data} update={update} notify={notify} storeName={data.storeConfig.name} />}
               {view === "estoque" && <Estoque data={data} update={update} notify={notify} />}
               {view === "compatibilidade" && <Compatibilidade data={data} update={update} notify={notify} />}
