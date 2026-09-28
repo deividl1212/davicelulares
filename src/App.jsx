@@ -995,7 +995,7 @@ function Estoque({ data, update, notify }) {
   const remove = (id) => { update("products", (arr) => arr.filter((p) => p.id !== id)); setConfirmDel(null); notify("Produto removido"); };
 
   const filtered = data.products.filter((p) => {
-    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || (p.code || "").toLowerCase().includes(search.toLowerCase());
+        const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || (p.code || "").toLowerCase().includes(search.toLowerCase()) || (p.sku || "").toLowerCase().includes(search.toLowerCase());
     const matchesCategory = categoryFilter === "todas" || p.category === categoryFilter;
     return matchesSearch && matchesCategory;
   });
@@ -1019,7 +1019,7 @@ function Estoque({ data, update, notify }) {
       <div className="card" style={{ padding: 0 }}>
         {filtered.length === 0 ? <div style={{ padding: 30 }}><EmptyState icon={<Package size={28} />} title="Nenhum produto cadastrado" /></div> : (
           <table>
-            <thead><tr><th>Código</th><th>Produto</th><th>Categoria</th><th>Custo</th><th>Preço</th><th>Qtd.</th><th></th></tr></thead>
+                       <thead><tr><th>Código</th><th>Produto</th><th>Categoria</th><th>Detalhes</th><th>Custo</th><th>Preço</th><th>Qtd.</th><th></th></tr></thead>
             <tbody>
               {filtered.map((p) => {
                 const low = p.qty <= p.minQty;
@@ -1027,7 +1027,8 @@ function Estoque({ data, update, notify }) {
                   <tr key={p.id}>
                     <td className="mono" style={{ color: "var(--text-faint)" }}>{p.code || "—"}</td>
                     <td style={{ fontWeight: 600 }}>{p.name}</td>
-                    <td><span className="badge gray">{p.category}</span></td>
+                                        <td><span className="badge gray">{p.category}</span></td>
+                    <td style={{ color: "var(--text-dim)" }}>{p.sku || "—"}</td>
                     <td className="mono">{brl(p.cost)}</td>
                     <td className="mono">{brl(p.price)}</td>
                     <td><span className={"badge " + (low ? "red" : "green")}>{low && <AlertTriangle size={11} />} {p.qty} un.</span></td>
@@ -1063,8 +1064,8 @@ function Estoque({ data, update, notify }) {
                   <button className="btn btn-ghost btn-sm" onClick={() => { setAddingCategory(false); setNewCategoryName(""); }}><X size={14} /></button>
                 </div>
               )}
-            </Field>
-            <Field label="SKU"><input className="input" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} /></Field>
+            </Field>                       <Field label="Detalhes"><input className="input" value={form.sku || ""} onChange={(e) => setForm({ ...form, sku: e.target.value })} placeholder="Ex: cor, tamanho, modelo..." /></Field>
+
           </div>
           <div className="field-row" style={{ gridTemplateColumns: "1fr 1fr" }}>
             <Field label="Custo (R$)"><input className="input" value={form.cost} onChange={(e) => setForm({ ...form, cost: e.target.value })} placeholder="0,00" /></Field>
@@ -1109,14 +1110,15 @@ function Estoque({ data, update, notify }) {
       {reportOpen && (
         <ReportModal title="Relatório de estoque" storeName={data.storeConfig.name} onClose={() => setReportOpen(false)}>
           {data.products.length === 0 ? <div style={{ color: "var(--text-faint)", fontSize: 13 }}>Nenhum produto cadastrado.</div> : (
-            <table>
-              <thead><tr><th>Código</th><th>Produto</th><th>Categoria</th><th style={{ textAlign: "right" }}>Custo</th><th style={{ textAlign: "right" }}>Preço</th><th style={{ textAlign: "right" }}>Qtd.</th></tr></thead>
+            <table>                            <thead><tr><th>Código</th><th>Produto</th><th>Categoria</th><th>Detalhes</th><th style={{ textAlign: "right" }}>Custo</th><th style={{ textAlign: "right" }}>Preço</th><th style={{ textAlign: "right" }}>Qtd.</th></tr></thead>
+
               <tbody>
                 {data.products.map((p) => (
                   <tr key={p.id}>
                     <td className="mono">{p.code || "—"}</td>
                     <td>{p.name}</td>
-                    <td>{p.category}</td>
+                                        <td>{p.category}</td>
+                    <td>{p.sku || "—"}</td>
                     <td className="mono" style={{ textAlign: "right" }}>{brl(p.cost)}</td>
                     <td className="mono" style={{ textAlign: "right" }}>{brl(p.price)}</td>
                     <td className="mono" style={{ textAlign: "right" }}>{p.qty}</td>
