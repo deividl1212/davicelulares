@@ -3035,6 +3035,168 @@ function ControleCaixa({ data, update, notify }) {
 }
 
 /* ============================================================
+   FATURAMENTO GERAL (soma total, sem divisão por dia/mês)
+   ============================================================ */
+function FaturamentoGeral({ data, update, notify }) {
+  const num = (v) => parseFloat(String(v).replace(",", ".")) || 0;
+  const sales = data.sales || [];
+  const entries = data.financeEntries || [];
+  const initial = (data.storeConfig && data.storeConfig.initialBalance) || 0;
+
+  const [reportOpen, setReportOpen] = useState(false);
+  const [initialTxt, setInitialTxt] = useState("");
+  useEffect(() => { setInitialTxt(initial ? String(initial).replace(".", ",") : ""); }, [initial]);
+
+  const saveInitial = () => {
+    const v = num(initialTxt);
+    if (v === initial) return;
+    update("storeConfig", (cfg) => ({ ...(cfg || {}), initialBalance: v }));
+    notify("Saldo inicial atualizado");
+  };
+
+  const byMethod = {};
+  Object.keys(PAYMENT_LABELS).forEach((k) => { byMethod[k] = 0; });
+  sales.forEach((s) => { byMethod[s.paymentMethod] = (byMethod[s.paymentMethod] || 0) + s.total; });
+  const totalVendas = sales.reduce((a, s) => a + s.total, 0);
+  const outrasEntradas = entries.filter((f) => f.type === "receber" && f.status === "pago").reduce((a, f) => a + f.amount, 0);
+  const totalEntrou = totalVendas + outrasEntradas;
+  const totalSaiu = entries.filter((f) => f.type === "pagar" && f.status === "pago").reduce((a, f) => a + f.amount, 0);
+  const saldoAtual = initial + totalEntrou - totalSaiu;
+
+  const aPagar = entries.filter((f) => f.type === "pagar" && f.status !== "pago").reduce((a, f) => a + f.amount, 0);
+  const aReceberManual = entries.filter((f) => f.type === "receber" && f.status !== "pago").reduce((a, f) => a + f.amount, 0);
+  const aReceberCrediario = (data.crediarioAccounts || []).filter((a) => a.status === "Pendente").reduce((s, a) => s + a.balance, 0);
+  const aReceber = aReceberManual + aReceberCrediario;
+  const disponivel = saldoAtual - aPagar;
+  const projetado = saldoAtual + aReceber - aPagar;
+
+  const firstSale = sales.length ? sales.reduce((min, s) => (new Date(s.createdAt) < new Date(min) ? s.createdAt : min), sales[0].createdAt) : null;
+  const pctOf = (v) => (totalVendas > 0 ? ((v / totalVendas) * 100).toFixed(1).replace(".", ",") + "%" : "—");
+  const good = (v) => (v >= 0 ? "var(--green)" : "var(--red)");
+
+  return (
+    <div>
+      <div className="toolbar">
+        <div style={{ fontSize: 13, color: "var(--text-dim)" }}>Soma de tudo desde o início{firstSale ? ` (primeira venda em ${fmtDate(firstSale)})` : ""}</div>
+        <ReportButton onClick={() => setReportOpen(true)} />
+      </div>
+
+      <div className="grid" style={{ gridTemplateColumns: "repeat(4,1fr)", marginBottom: 16 }}>
+        <div className="card stat-card">
+          <div className="stat-label">Saldo atual</div>
+          <div className="stat-value" style={{ color: saldoAtual >= 0 ? "var(--accent)" : "var(--red)" }}>{brl(saldoAtual)}</div>
+          <div className="stat-foot">saldo inicial + entradas − saídas</div>
+        </div>
+        <div className="card stat-card">
+          <div className="stat-label">Total que entrou</div>
+          <div className="stat-value green">{brl(totalEntrou)}</div>
+          <div className="stat-foot"><Receipt size={12} /> {sales.length} venda{sales.length !== 1 ? "s" : ""}</div>
+        </div>
+        <div className="card stat-card">
+          <div className="stat-label">Total que saiu</div>
+          <div className="stat-value red">{brl(totalSaiu)}</div>
+          <div className="stat-foot"><TrendingDown size={12} /> gastos já pagos</div>
+        </div>
+        <div className="card stat-card">
+          <div className="stat-label">Disponível para gastar</div>
+          <div className="stat-value" style={{ color: good(disponivel) }}>{brl(disponivel)}</div>
+          <div className="stat-foot">saldo − contas a pagar em aberto</div>
+        </div>
+      </div>
+
+      <div className="grid" style={{ gridTemplateColumns: "repeat(3,1fr)", marginBottom: 16 }}>
+        <div className="card stat-card">
+          <div className="stat-label">A pagar (em aberto)</div>
+          <div className="stat-value red">{brl(aPagar)}</div>
+          <div className="stat-foot">contas já lançadas e não pagas</div>
+        </div>
+        <div className="card stat-card">
+          <div className="stat-label">A receber (em aberto)</div>
+          <div className="stat-value">{brl(aReceber)}</div>
+          <div className="stat-foot">promissórias {brl(aReceberCrediario)} · outros {brl(aReceberManual)}</div>
+        </div>
+        <div className="card stat-card">
+          <div className="stat-label">Saldo projetado</div>
+          <div className="stat-value" style={{ color: good(projetado) }}>{brl(projetado)}</div>
+          <div className="stat-foot">saldo + a receber − a pagar</div>
+        </div>
+      </div>
+
+      <div className="grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
+        <div className="card">
+          <div className="card-title">Composição do saldo</div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--border-soft)", fontSize: 13 }}>
+            <span style={{ color: "var(--text-dim)" }}>Saldo inicial (o que já tinha antes do sistema)</span>
+            <input className="input" style={{ width: 130, textAlign: "right" }} value={initialTxt} placeholder="0,00" onChange={(e) => setInitialTxt(e.target.value)} onBlur={saveInitial} onKeyDown={(e) => e.key === "Enter" && e.target.blur()} />
+          </div>
+          {[
+            ["Vendas (tudo que já foi recebido)", totalVendas, 1],
+            ["Outras entradas (recebimentos manuais)", outrasEntradas, 1],
+            ["Gastos pagos", totalSaiu, -1],
+          ].map(([label, value, sign]) => (
+            <div key={label} style={{ display: "flex", justifyContent: "space-between", padding: "8px 0", borderBottom: "1px solid var(--border-soft)", fontSize: 13 }}>
+              <span style={{ color: "var(--text-dim)" }}>{label}</span>
+              <span className="mono" style={{ color: sign < 0 && value > 0 ? "var(--red)" : "var(--text)" }}>{sign < 0 && value > 0 ? "− " : ""}{brl(value)}</span>
+            </div>
+          ))}
+          <div style={{ display: "flex", justifyContent: "space-between", paddingTop: 12, alignItems: "baseline" }}>
+            <span style={{ fontWeight: 600 }}>Saldo atual</span>
+            <span className="mono" style={{ fontWeight: 700, fontSize: 16 }}>{brl(saldoAtual)}</span>
+          </div>
+          <p style={{ margin: "12px 0 0 0", fontSize: 11.5, color: "var(--text-faint)" }}>Não inclui gastos pessoais nem sangrias e reforços do caixa (são movimentos internos).</p>
+        </div>
+
+        <div className="card">
+          <div className="card-title">Entradas por forma de pagamento</div>
+          {Object.entries(PAYMENT_LABELS).map(([k, label]) => (
+            <div key={k} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: "1px solid var(--border-soft)", fontSize: 13 }}>
+              <span style={{ flex: 1, color: "var(--text-dim)" }}>{label}</span>
+              <span className="mono">{brl(byMethod[k] || 0)}</span>
+              <span style={{ width: 48, textAlign: "right", fontSize: 11, color: "var(--text-faint)" }}>{pctOf(byMethod[k] || 0)}</span>
+            </div>
+          ))}
+          <p style={{ margin: "12px 0 0 0", fontSize: 11.5, color: "var(--text-faint)" }}>No crediário conta só o que já foi pago (entrada e recebimentos). O saldo em aberto aparece em "A receber".</p>
+        </div>
+      </div>
+
+      {reportOpen && (
+        <ReportModal title="Faturamento geral" storeName={data.storeConfig.name} onClose={() => setReportOpen(false)}>
+          <div className="grid" style={{ gridTemplateColumns: "repeat(4,1fr)", marginBottom: 16 }}>
+            <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">Saldo atual</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(saldoAtual)}</div></div>
+            <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">Total que entrou</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(totalEntrou)}</div></div>
+            <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">Total que saiu</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(totalSaiu)}</div></div>
+            <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">Disponível para gastar</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(disponivel)}</div></div>
+          </div>
+          <div className="grid" style={{ gridTemplateColumns: "repeat(3,1fr)", marginBottom: 16 }}>
+            <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">A pagar (em aberto)</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(aPagar)}</div></div>
+            <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">A receber (em aberto)</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(aReceber)}</div></div>
+            <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">Saldo projetado</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(projetado)}</div></div>
+          </div>
+          <div className="card" style={{ padding: 14, marginBottom: 16 }}>
+            <div className="card-title" style={{ marginBottom: 10 }}>Composição do saldo</div>
+            <table><tbody>
+              <tr><td>Saldo inicial</td><td className="mono" style={{ textAlign: "right" }}>{brl(initial)}</td></tr>
+              <tr><td>Vendas</td><td className="mono" style={{ textAlign: "right" }}>{brl(totalVendas)}</td></tr>
+              <tr><td>Outras entradas</td><td className="mono" style={{ textAlign: "right" }}>{brl(outrasEntradas)}</td></tr>
+              <tr><td>Gastos pagos</td><td className="mono" style={{ textAlign: "right" }}>− {brl(totalSaiu)}</td></tr>
+              <tr><td><strong>Saldo atual</strong></td><td className="mono" style={{ textAlign: "right" }}><strong>{brl(saldoAtual)}</strong></td></tr>
+            </tbody></table>
+          </div>
+          <div className="card" style={{ padding: 14 }}>
+            <div className="card-title" style={{ marginBottom: 10 }}>Entradas por forma de pagamento</div>
+            <table><tbody>
+              {Object.entries(PAYMENT_LABELS).map(([k, label]) => (
+                <tr key={k}><td>{label}</td><td className="mono" style={{ textAlign: "right" }}>{brl(byMethod[k] || 0)}</td><td className="mono" style={{ textAlign: "right" }}>{pctOf(byMethod[k] || 0)}</td></tr>
+              ))}
+            </tbody></table>
+          </div>
+        </ReportModal>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
    LOGIN
    ============================================================ */
 function LoginScreen({ onLogin }) {
@@ -3103,7 +3265,8 @@ const NAV = [
   { key: "fornecedores", label: "Fornecedores", icon: Phone },
     { key: "gastos", label: "Gastos e Despesas", icon: TrendingDown },
   { key: "pessoais", label: "Gastos Pessoais", icon: DollarSign },
-  { key: "financeiro-mensal", label: "Financeiro Mensal", icon: TrendingUp },
+    { key: "financeiro-mensal", label: "Financeiro Mensal", icon: TrendingUp },
+  { key: "geral", label: "Faturamento Geral", icon: Building2 },
   { key: "dashboard", label: "Faturamento do dia", icon: LayoutDashboard },
 ];
 const TITLES = {
@@ -3118,7 +3281,8 @@ const TITLES = {
   fornecedores: ["Fornecedores", "Contatos e cadastro"],
     gastos: ["Gastos e Despesas", "Contas a pagar categorizadas"],
   pessoais: ["Gastos Pessoais", "Controle financeiro pessoal, mês a mês"],
-  "financeiro-mensal": ["Financeiro Mensal", "Relatório completo do mês"],
+    "financeiro-mensal": ["Financeiro Mensal", "Relatório completo do mês"],
+  geral: ["Faturamento Geral", "Tudo que entrou e saiu desde o início"],
 };
 
 export default function App() {
@@ -3202,7 +3366,8 @@ export default function App() {
               {view === "fornecedores" && <Fornecedores data={data} update={update} notify={notify} />}
                            {view === "gastos" && <GastosDespesas data={data} update={update} notify={notify} />}
               {view === "pessoais" && <GastosPessoais data={data} update={update} notify={notify} />}
-              {view === "financeiro-mensal" && <FinanceiroMensal data={data} update={update} notify={notify} />}
+                            {view === "financeiro-mensal" && <FinanceiroMensal data={data} update={update} notify={notify} />}
+              {view === "geral" && <FaturamentoGeral data={data} update={update} notify={notify} />}
             </>
           )}
         </div>
