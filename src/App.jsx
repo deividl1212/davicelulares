@@ -2474,7 +2474,8 @@ function GastosPessoais({ data, update, notify }) {
   const [reportOpen, setReportOpen] = useState(false);
   const [salaryTxt, setSalaryTxt] = useState("");
   const [extraTxt, setExtraTxt] = useState("");
-  const [savingsTxt, setSavingsTxt] = useState("");
+    const [savingsTxt, setSavingsTxt] = useState("");
+  const [ceilingTxt, setCeilingTxt] = useState("");
 
   const refDate = useMemo(() => {
     const d = new Date();
@@ -2492,8 +2493,9 @@ function GastosPessoais({ data, update, notify }) {
   useEffect(() => {
     setSalaryTxt(monthDoc.salary ? String(monthDoc.salary).replace(".", ",") : "");
     setExtraTxt(monthDoc.extra ? String(monthDoc.extra).replace(".", ",") : "");
-    setSavingsTxt(monthDoc.savings ? String(monthDoc.savings).replace(".", ",") : "");
-  }, [monthKey, monthDoc.salary, monthDoc.extra, monthDoc.savings]);
+        setSavingsTxt(monthDoc.savings ? String(monthDoc.savings).replace(".", ",") : "");
+    setCeilingTxt(monthDoc.ceiling ? String(monthDoc.ceiling).replace(".", ",") : "");
+  }, [monthKey, monthDoc.salary, monthDoc.extra, monthDoc.savings, monthDoc.ceiling]);
 
   const saveMonthField = (field, txt) => {
     const val = parseMoney(txt);
@@ -2555,7 +2557,12 @@ function GastosPessoais({ data, update, notify }) {
   const sobrou = salary - totalGastos;
   const saldoFinal = sobrou + extra - savings;
   const pct = (v) => (salary > 0 ? fmtPct((v / salary) * 100) : "—");
-  const savingsPct = sobrou > 0 ? fmtPct((savings / sobrou) * 100) : "—";
+    const savingsPct = sobrou > 0 ? fmtPct((savings / sobrou) * 100) : "—";
+  const ceiling = monthDoc.ceiling || 0;
+  const restante = ceiling - totalGastos;
+  const estourou = ceiling > 0 && restante < 0;
+  const usoReal = ceiling > 0 ? (totalGastos / ceiling) * 100 : 0;
+  const barColor = estourou ? "var(--red)" : usoReal >= 80 ? "var(--amber)" : "var(--green)";
 
   return (
     <div>
@@ -2573,9 +2580,9 @@ function GastosPessoais({ data, update, notify }) {
         <ReportButton onClick={() => setReportOpen(true)} />
       </div>
 
-      <div className="card" style={{ marginBottom: 16 }}>
+            <div className="card" style={{ marginBottom: 16 }}>
         <div className="card-title">Valores do mês</div>
-        <div className="grid" style={{ gridTemplateColumns: "repeat(3,1fr)" }}>
+        <div className="grid" style={{ gridTemplateColumns: "repeat(4,1fr)" }}>
           <Field label="Salário (R$)">
             <input className="input" value={salaryTxt} placeholder="0,00" onChange={(e) => setSalaryTxt(e.target.value)} onBlur={() => saveMonthField("salary", salaryTxt)} onKeyDown={(e) => e.key === "Enter" && e.target.blur()} />
           </Field>
@@ -2585,7 +2592,32 @@ function GastosPessoais({ data, update, notify }) {
           <Field label="Poupança (R$)">
             <input className="input" value={savingsTxt} placeholder="0,00" onChange={(e) => setSavingsTxt(e.target.value)} onBlur={() => saveMonthField("savings", savingsTxt)} onKeyDown={(e) => e.key === "Enter" && e.target.blur()} />
           </Field>
+          <Field label="Teto de gastos (R$)">
+            <input className="input" value={ceilingTxt} placeholder="0,00" onChange={(e) => setCeilingTxt(e.target.value)} onBlur={() => saveMonthField("ceiling", ceilingTxt)} onKeyDown={(e) => e.key === "Enter" && e.target.blur()} />
+          </Field>
         </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="card-title">Teto de gastos</div>
+        {ceiling <= 0 ? (
+          <div style={{ fontSize: 13, color: "var(--text-faint)" }}>Defina o teto de gastos do mês no campo acima para acompanhar quanto ainda pode gastar.</div>
+        ) : (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 8 }}>
+              <div>
+                <div className="stat-label">{estourou ? "Estourou o teto em" : "Ainda posso gastar"}</div>
+                <div className="stat-value" style={{ fontSize: 28, color: estourou ? "var(--red)" : "var(--green)" }}>{brl(Math.abs(restante))}</div>
+              </div>
+              <div style={{ fontSize: 12.5, color: "var(--text-dim)", textAlign: "right" }}>
+                Gasto {brl(totalGastos)} de {brl(ceiling)} ({fmtPct(usoReal)})
+              </div>
+            </div>
+            <div style={{ height: 8, background: "var(--surface-3)", borderRadius: 4, marginTop: 12, overflow: "hidden" }}>
+              <div style={{ width: `${Math.min(100, usoReal)}%`, height: "100%", background: barColor }} />
+            </div>
+          </>
+        )}
       </div>
 
       <div className="grid" style={{ gridTemplateColumns: "repeat(4,1fr)", marginBottom: 16 }}>
@@ -2694,15 +2726,17 @@ function GastosPessoais({ data, update, notify }) {
 
       {reportOpen && (
         <ReportModal title={`Gastos pessoais — ${monthLabel}`} storeName={data.storeConfig.name} onClose={() => setReportOpen(false)}>
-          <div className="grid" style={{ gridTemplateColumns: "repeat(3,1fr)", marginBottom: 16 }}>
+                    <div className="grid" style={{ gridTemplateColumns: "repeat(4,1fr)", marginBottom: 16 }}>
             <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">Salário</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(salary)}</div></div>
             <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">Entradas extras</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(extra)}</div></div>
             <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">Poupança</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(savings)}</div></div>
+            <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">Teto de gastos</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{ceiling > 0 ? brl(ceiling) : "—"}</div></div>
           </div>
-          <div className="grid" style={{ gridTemplateColumns: "repeat(3,1fr)", marginBottom: 16 }}>
+          <div className="grid" style={{ gridTemplateColumns: "repeat(4,1fr)", marginBottom: 16 }}>
             <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">Total de gastos ({pct(totalGastos)})</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(totalGastos)}</div></div>
             <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">Sobrou</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(sobrou)}</div></div>
             <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">Saldo após poupança e entradas</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(saldoFinal)}</div></div>
+            <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">{ceiling > 0 ? (estourou ? "Estourou o teto em" : "Ainda posso gastar") : "Teto não definido"}</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{ceiling > 0 ? brl(Math.abs(restante)) : "—"}</div></div>
           </div>
           <div className="card" style={{ padding: 14, marginBottom: 16 }}>
             <div className="card-title" style={{ marginBottom: 10 }}>Contas do mês ({expenses.length})</div>
