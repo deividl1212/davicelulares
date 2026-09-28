@@ -766,7 +766,7 @@ function VendasPDV({ data, update, notify, storeName }) {
             <Field label="Nome do cliente (opcional)"><input className="input" value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Ex: João da Silva" /></Field>
             <Field label="Forma de pagamento">
               <div className="tab-pills" style={{ flexWrap: "wrap" }}>
-                {Object.entries(PAYMENT_LABELS).map(([k, label]) => (
+                                {Object.entries(PAYMENT_LABELS).filter(([k]) => k !== "crediario").map(([k, label]) => (
                   <div key={k} className={"tab-pill" + (payment === k ? " active" : "")} onClick={() => setPayment(k)}>{label}</div>
                 ))}
               </div>
@@ -3260,9 +3260,7 @@ const NAV = [
   { key: "estoque", label: "Estoque", icon: Package },
   { key: "os", label: "Ordens de Serviço", icon: Wrench },
   { key: "compatibilidade", label: "Compatibilidade", icon: Smartphone },
-  { key: "crediario", label: "Crediário", icon: Wallet },
-  { key: "clientes", label: "Clientes", icon: Users },
-  { key: "fornecedores", label: "Fornecedores", icon: Phone },
+   { key: "clientes", label: "Clientes", icon: Users },
     { key: "gastos", label: "Gastos e Despesas", icon: TrendingDown },
   { key: "pessoais", label: "Gastos Pessoais", icon: DollarSign },
     { key: "financeiro-mensal", label: "Financeiro Mensal", icon: TrendingUp },
@@ -3372,8 +3370,7 @@ export default function App() {
           )}
         </div>
       </div>
-      {toast && <Toast message={toast} onDone={() => setToast(null)} />}
-      <CrediarioAlerts accounts={data.crediarioAccounts} />
+            {toast && <Toast message={toast} onDone={() => setToast(null)} />}
     </div>
   );
 }
