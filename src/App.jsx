@@ -273,12 +273,13 @@ const PRODUCT_CATEGORIES = ["Geral", "Acessório", "Peça de reposição", "Elet
 /* ============================================================
    STORAGE HOOK — mesma arquitetura do sistema original
    ============================================================ */
-const FIRESTORE_COLLECTIONS = ["products", "customers", "serviceOrders", "cashRegisters", "sales", "financeEntries", "suppliers", "crediarioAccounts", "crediarioPayments", "filmCompat"];
+const FIRESTORE_COLLECTIONS = ["products", "customers", "serviceOrders", "cashRegisters", "sales", "financeEntries", "suppliers", "crediarioAccounts", "crediarioPayments", "filmCompat", "personalMonths", "personalExpenses", "personalCards"];
 
 function useStore() {
   const [data, setData] = useState({
     products: [], customers: [], serviceOrders: [], cashRegisters: [], sales: [], financeEntries: [], suppliers: [],
-    crediarioAccounts: [], crediarioPayments: [], filmCompat: [],
+        crediarioAccounts: [], crediarioPayments: [], filmCompat: [],
+    personalMonths: [], personalExpenses: [], personalCards: [],
     storeConfig: { name: "Sistema de Teste" },
     categories: PRODUCT_CATEGORIES,
   });
@@ -2456,6 +2457,296 @@ function GastosDespesas({ data, update, notify }) {
 }
 
 /* ============================================================
+   GASTOS PESSOAIS (separado da loja)
+   ============================================================ */
+const parseMoney = (v) => parseFloat(String(v).replace(",", ".")) || 0;
+const fmtPct = (v) => v.toFixed(1).replace(".", ",") + "%";
+
+function GastosPessoais({ data, update, notify }) {
+  const [monthOffset, setMonthOffset] = useState(0);
+  const [expModal, setExpModal] = useState(false);
+  const [expEditing, setExpEditing] = useState(null);
+  const [expForm, setExpForm] = useState({ description: "", amount: "" });
+  const [cardModal, setCardModal] = useState(false);
+  const [cardEditing, setCardEditing] = useState(null);
+  const [cardForm, setCardForm] = useState({ name: "", amount: "" });
+  const [confirmDel, setConfirmDel] = useState(null);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [salaryTxt, setSalaryTxt] = useState("");
+  const [extraTxt, setExtraTxt] = useState("");
+  const [savingsTxt, setSavingsTxt] = useState("");
+
+  const refDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(1);
+    d.setMonth(d.getMonth() + monthOffset);
+    return d;
+  }, [monthOffset]);
+  const monthKey = `${refDate.getFullYear()}-${String(refDate.getMonth() + 1).padStart(2, "0")}`;
+  const monthLabel = refDate.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+
+  const monthDoc = (data.personalMonths || []).find((m) => m.id === monthKey) || { salary: 0, extra: 0, savings: 0 };
+  const expenses = (data.personalExpenses || []).filter((e) => e.month === monthKey).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  const cards = (data.personalCards || []).filter((c) => c.month === monthKey).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+
+  useEffect(() => {
+    setSalaryTxt(monthDoc.salary ? String(monthDoc.salary).replace(".", ",") : "");
+    setExtraTxt(monthDoc.extra ? String(monthDoc.extra).replace(".", ",") : "");
+    setSavingsTxt(monthDoc.savings ? String(monthDoc.savings).replace(".", ",") : "");
+  }, [monthKey, monthDoc.salary, monthDoc.extra, monthDoc.savings]);
+
+  const saveMonthField = (field, txt) => {
+    const val = parseMoney(txt);
+    if (val === (monthDoc[field] || 0)) return;
+    update("personalMonths", (arr) => {
+      const list = arr || [];
+      if (list.some((m) => m.id === monthKey)) return list.map((m) => (m.id === monthKey ? { ...m, [field]: val } : m));
+      return [...list, { id: monthKey, salary: 0, extra: 0, savings: 0, [field]: val }];
+    });
+  };
+
+  const openNewExp = () => { setExpForm({ description: "", amount: "" }); setExpEditing(null); setExpModal(true); };
+  const openEditExp = (e) => { setExpForm({ description: e.description, amount: String(e.amount).replace(".", ",") }); setExpEditing(e.id); setExpModal(true); };
+  const saveExp = () => {
+    if (!expForm.description.trim() || !parseMoney(expForm.amount)) return;
+    const payload = { description: expForm.description.trim(), amount: parseMoney(expForm.amount) };
+    if (expEditing) {
+      update("personalExpenses", (arr) => (arr || []).map((e) => (e.id === expEditing ? { ...e, ...payload } : e)));
+      notify("Conta atualizada");
+    } else {
+      update("personalExpenses", (arr) => [...(arr || []), { id: uid(), month: monthKey, ...payload, status: "pendente", createdAt: now() }]);
+      notify("Conta adicionada");
+    }
+    setExpModal(false);
+  };
+  const toggleExp = (id) => update("personalExpenses", (arr) => (arr || []).map((e) => (e.id === id ? { ...e, status: e.status === "pago" ? "pendente" : "pago" } : e)));
+
+  const openNewCard = () => { setCardForm({ name: "", amount: "" }); setCardEditing(null); setCardModal(true); };
+  const openEditCard = (c) => { setCardForm({ name: c.name, amount: String(c.amount).replace(".", ",") }); setCardEditing(c.id); setCardModal(true); };
+  const saveCard = () => {
+    if (!cardForm.name.trim() || !parseMoney(cardForm.amount)) return;
+    const payload = { name: cardForm.name.trim(), amount: parseMoney(cardForm.amount) };
+    if (cardEditing) {
+      update("personalCards", (arr) => (arr || []).map((c) => (c.id === cardEditing ? { ...c, ...payload } : c)));
+      notify("Cartão atualizado");
+    } else {
+      update("personalCards", (arr) => [...(arr || []), { id: uid(), month: monthKey, ...payload, status: "pendente", createdAt: now() }]);
+      notify("Cartão adicionado");
+    }
+    setCardModal(false);
+  };
+  const toggleCard = (id) => update("personalCards", (arr) => (arr || []).map((c) => (c.id === id ? { ...c, status: c.status === "pago" ? "pendente" : "pago" } : c)));
+
+  const doDelete = () => {
+    if (!confirmDel) return;
+    if (confirmDel.kind === "exp") update("personalExpenses", (arr) => (arr || []).filter((e) => e.id !== confirmDel.id));
+    else update("personalCards", (arr) => (arr || []).filter((c) => c.id !== confirmDel.id));
+    setConfirmDel(null);
+    notify("Removido");
+  };
+
+  const totalContas = expenses.reduce((s, e) => s + e.amount, 0);
+  const totalCartoes = cards.reduce((s, c) => s + c.amount, 0);
+  const totalGastos = totalContas + totalCartoes;
+  const paidTotal = expenses.filter((e) => e.status === "pago").reduce((s, e) => s + e.amount, 0) + cards.filter((c) => c.status === "pago").reduce((s, c) => s + c.amount, 0);
+  const salary = monthDoc.salary || 0;
+  const extra = monthDoc.extra || 0;
+  const savings = monthDoc.savings || 0;
+  const sobrou = salary - totalGastos;
+  const saldoFinal = sobrou + extra - savings;
+  const pct = (v) => (salary > 0 ? fmtPct((v / salary) * 100) : "—");
+  const savingsPct = sobrou > 0 ? fmtPct((savings / sobrou) * 100) : "—";
+
+  return (
+    <div>
+      <div className="toolbar">
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button className="btn btn-secondary btn-sm" onClick={() => setMonthOffset((m) => m - 1)}>
+            <ChevronRight size={14} style={{ transform: "rotate(180deg)" }} />
+          </button>
+          <div style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 15, textTransform: "capitalize", minWidth: 160, textAlign: "center" }}>{monthLabel}</div>
+          <button className="btn btn-secondary btn-sm" onClick={() => setMonthOffset((m) => m + 1)}>
+            <ChevronRight size={14} />
+          </button>
+          {monthOffset !== 0 && <button className="btn btn-ghost btn-sm" onClick={() => setMonthOffset(0)}>Voltar para este mês</button>}
+        </div>
+        <ReportButton onClick={() => setReportOpen(true)} />
+      </div>
+
+      <div className="card" style={{ marginBottom: 16 }}>
+        <div className="card-title">Valores do mês</div>
+        <div className="grid" style={{ gridTemplateColumns: "repeat(3,1fr)" }}>
+          <Field label="Salário (R$)">
+            <input className="input" value={salaryTxt} placeholder="0,00" onChange={(e) => setSalaryTxt(e.target.value)} onBlur={() => saveMonthField("salary", salaryTxt)} onKeyDown={(e) => e.key === "Enter" && e.target.blur()} />
+          </Field>
+          <Field label="Entradas extras (R$)">
+            <input className="input" value={extraTxt} placeholder="0,00" onChange={(e) => setExtraTxt(e.target.value)} onBlur={() => saveMonthField("extra", extraTxt)} onKeyDown={(e) => e.key === "Enter" && e.target.blur()} />
+          </Field>
+          <Field label="Poupança (R$)">
+            <input className="input" value={savingsTxt} placeholder="0,00" onChange={(e) => setSavingsTxt(e.target.value)} onBlur={() => saveMonthField("savings", savingsTxt)} onKeyDown={(e) => e.key === "Enter" && e.target.blur()} />
+          </Field>
+        </div>
+      </div>
+
+      <div className="grid" style={{ gridTemplateColumns: "repeat(4,1fr)", marginBottom: 16 }}>
+        <div className="card stat-card">
+          <div className="stat-label">Total de gastos</div>
+          <div className="stat-value">{brl(totalGastos)}</div>
+          <div className="stat-foot">{pct(totalGastos)} do salário</div>
+        </div>
+        <div className="card stat-card">
+          <div className="stat-label">Sobrou</div>
+          <div className="stat-value" style={{ color: sobrou >= 0 ? "var(--green)" : "var(--red)" }}>{brl(sobrou)}</div>
+          <div className="stat-foot">salário − gastos</div>
+        </div>
+        <div className="card stat-card">
+          <div className="stat-label">Saldo após poupança e entradas</div>
+          <div className="stat-value" style={{ color: saldoFinal >= 0 ? "var(--green)" : "var(--red)" }}>{brl(saldoFinal)}</div>
+          <div className="stat-foot">poupança = {savingsPct} do que sobrou</div>
+        </div>
+        <div className="card stat-card">
+          <div className="stat-label">Falta pagar</div>
+          <div className="stat-value red">{brl(totalGastos - paidTotal)}</div>
+          <div className="stat-foot">já pago: {brl(paidTotal)}</div>
+        </div>
+      </div>
+
+      <div className="grid" style={{ gridTemplateColumns: "1.4fr 1fr" }}>
+        <div className="card" style={{ padding: 0 }}>
+          <div className="card-title" style={{ padding: "16px 16px 0 16px" }}>
+            Contas do mês
+            <button className="btn btn-primary btn-sm" onClick={openNewExp}><Plus size={13} /> Adicionar conta</button>
+          </div>
+          {expenses.length === 0 ? (
+            <div style={{ padding: 24 }}><EmptyState icon={<DollarSign size={26} />} title="Nenhuma conta neste mês" sub="Clique em Adicionar conta para lançar" /></div>
+          ) : (
+            <table>
+              <thead><tr><th>Conta</th><th style={{ textAlign: "right" }}>Valor</th><th style={{ textAlign: "right" }}>% salário</th><th>Status</th><th></th></tr></thead>
+              <tbody>
+                {expenses.map((e) => (
+                  <tr key={e.id}>
+                    <td style={{ fontWeight: 600 }}>{e.description}</td>
+                    <td className="mono" style={{ textAlign: "right" }}>{brl(e.amount)}</td>
+                    <td className="mono" style={{ textAlign: "right", color: "var(--text-faint)" }}>{pct(e.amount)}</td>
+                    <td><span className={"badge " + (e.status === "pago" ? "green" : "red")} style={{ cursor: "pointer" }} onClick={() => toggleExp(e.id)}>{e.status === "pago" ? "Pago" : "Pendente"}</span></td>
+                    <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                      <button className="btn btn-ghost btn-sm" onClick={() => openEditExp(e)}><Edit2 size={13} /></button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDel({ kind: "exp", id: e.id })}><Trash2 size={13} /></button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        <div className="card">
+          <div className="card-title">
+            Cartões de crédito
+            <button className="btn btn-primary btn-sm" onClick={openNewCard}><Plus size={13} /> Adicionar cartão</button>
+          </div>
+          {cards.length === 0 ? (
+            <EmptyState icon={<Wallet size={26} />} title="Nenhum cartão neste mês" sub="Adicione o cartão 1, 2... com o valor da fatura" />
+          ) : (
+            <>
+              {cards.map((c) => (
+                <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 8, padding: "9px 0", borderBottom: "1px solid var(--border-soft)" }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: 13 }}>{c.name}</div>
+                    <span className={"badge " + (c.status === "pago" ? "green" : "red")} style={{ cursor: "pointer", marginTop: 3 }} onClick={() => toggleCard(c.id)}>{c.status === "pago" ? "Pago" : "Pendente"}</span>
+                  </div>
+                  <span className="mono" style={{ fontWeight: 600 }}>{brl(c.amount)}</span>
+                  <button className="btn btn-ghost btn-sm" onClick={() => openEditCard(c)}><Edit2 size={13} /></button>
+                  <button className="btn btn-ghost btn-sm" onClick={() => setConfirmDel({ kind: "card", id: c.id })}><Trash2 size={13} /></button>
+                </div>
+              ))}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", paddingTop: 12 }}>
+                <span style={{ color: "var(--text-dim)", fontSize: 13 }}>Total dos cartões <span style={{ color: "var(--text-faint)" }}>({pct(totalCartoes)})</span></span>
+                <span className="mono" style={{ fontWeight: 700, fontSize: 16 }}>{brl(totalCartoes)}</span>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {expModal && (
+        <Modal title={expEditing ? "Editar conta" : "Nova conta"} onClose={() => setExpModal(false)}
+          footer={<><button className="btn btn-secondary" onClick={() => setExpModal(false)}>Cancelar</button><button className="btn btn-primary" onClick={saveExp}><Save size={14} /> Salvar</button></>}>
+          <Field label="Conta"><input className="input" value={expForm.description} onChange={(e) => setExpForm({ ...expForm, description: e.target.value })} placeholder="Ex: Academia, Internet, Luz..." /></Field>
+          <Field label="Valor (R$)"><input className="input" value={expForm.amount} onChange={(e) => setExpForm({ ...expForm, amount: e.target.value })} placeholder="0,00" /></Field>
+        </Modal>
+      )}
+
+      {cardModal && (
+        <Modal title={cardEditing ? "Editar cartão" : "Novo cartão"} onClose={() => setCardModal(false)}
+          footer={<><button className="btn btn-secondary" onClick={() => setCardModal(false)}>Cancelar</button><button className="btn btn-primary" onClick={saveCard}><Save size={14} /> Salvar</button></>}>
+          <Field label="Nome do cartão"><input className="input" value={cardForm.name} onChange={(e) => setCardForm({ ...cardForm, name: e.target.value })} placeholder="Ex: Cartão 1, Nubank..." /></Field>
+          <Field label="Valor da fatura (R$)"><input className="input" value={cardForm.amount} onChange={(e) => setCardForm({ ...cardForm, amount: e.target.value })} placeholder="0,00" /></Field>
+        </Modal>
+      )}
+
+      {confirmDel && (
+        <Modal title="Remover" onClose={() => setConfirmDel(null)}
+          footer={<><button className="btn btn-secondary" onClick={() => setConfirmDel(null)}>Cancelar</button><button className="btn btn-danger" onClick={doDelete}>Remover</button></>}>
+          <p style={{ margin: 0, color: "var(--text-dim)", fontSize: 13.5 }}>Tem certeza que deseja remover este lançamento? Essa ação não pode ser desfeita.</p>
+        </Modal>
+      )}
+
+      {reportOpen && (
+        <ReportModal title={`Gastos pessoais — ${monthLabel}`} storeName={data.storeConfig.name} onClose={() => setReportOpen(false)}>
+          <div className="grid" style={{ gridTemplateColumns: "repeat(3,1fr)", marginBottom: 16 }}>
+            <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">Salário</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(salary)}</div></div>
+            <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">Entradas extras</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(extra)}</div></div>
+            <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">Poupança</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(savings)}</div></div>
+          </div>
+          <div className="grid" style={{ gridTemplateColumns: "repeat(3,1fr)", marginBottom: 16 }}>
+            <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">Total de gastos ({pct(totalGastos)})</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(totalGastos)}</div></div>
+            <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">Sobrou</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(sobrou)}</div></div>
+            <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">Saldo após poupança e entradas</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(saldoFinal)}</div></div>
+          </div>
+          <div className="card" style={{ padding: 14, marginBottom: 16 }}>
+            <div className="card-title" style={{ marginBottom: 10 }}>Contas do mês ({expenses.length})</div>
+            {expenses.length === 0 ? <div style={{ color: "var(--text-faint)", fontSize: 13 }}>Nenhuma conta neste mês.</div> : (
+              <table>
+                <thead><tr><th>Conta</th><th style={{ textAlign: "right" }}>Valor</th><th style={{ textAlign: "right" }}>% salário</th><th>Status</th></tr></thead>
+                <tbody>
+                  {expenses.map((e) => (
+                    <tr key={e.id}>
+                      <td>{e.description}</td>
+                      <td className="mono" style={{ textAlign: "right" }}>{brl(e.amount)}</td>
+                      <td className="mono" style={{ textAlign: "right" }}>{pct(e.amount)}</td>
+                      <td>{e.status === "pago" ? "Pago" : "Pendente"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+          <div className="card" style={{ padding: 14 }}>
+            <div className="card-title" style={{ marginBottom: 10 }}>Cartões de crédito ({cards.length})</div>
+            {cards.length === 0 ? <div style={{ color: "var(--text-faint)", fontSize: 13 }}>Nenhum cartão neste mês.</div> : (
+              <table>
+                <thead><tr><th>Cartão</th><th style={{ textAlign: "right" }}>Valor</th><th style={{ textAlign: "right" }}>% salário</th><th>Status</th></tr></thead>
+                <tbody>
+                  {cards.map((c) => (
+                    <tr key={c.id}>
+                      <td>{c.name}</td>
+                      <td className="mono" style={{ textAlign: "right" }}>{brl(c.amount)}</td>
+                      <td className="mono" style={{ textAlign: "right" }}>{pct(c.amount)}</td>
+                      <td>{c.status === "pago" ? "Pago" : "Pendente"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </ReportModal>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
    LOGIN
    ============================================================ */
 function LoginScreen({ onLogin }) {
@@ -2521,7 +2812,8 @@ const NAV = [
   { key: "crediario", label: "Crediário", icon: Wallet },
   { key: "clientes", label: "Clientes", icon: Users },
   { key: "fornecedores", label: "Fornecedores", icon: Phone },
-  { key: "gastos", label: "Gastos e Despesas", icon: TrendingDown },
+    { key: "gastos", label: "Gastos e Despesas", icon: TrendingDown },
+  { key: "pessoais", label: "Gastos Pessoais", icon: DollarSign },
   { key: "financeiro-mensal", label: "Financeiro Mensal", icon: TrendingUp },
   { key: "dashboard", label: "Faturamento do dia", icon: LayoutDashboard },
 ];
@@ -2534,7 +2826,8 @@ const TITLES = {
   crediario: ["Crediário", "Promissórias e recebimentos parcelados"],
   clientes: ["Clientes", "Cadastro e histórico"],
   fornecedores: ["Fornecedores", "Contatos e cadastro"],
-  gastos: ["Gastos e Despesas", "Contas a pagar categorizadas"],
+    gastos: ["Gastos e Despesas", "Contas a pagar categorizadas"],
+  pessoais: ["Gastos Pessoais", "Controle financeiro pessoal, mês a mês"],
   "financeiro-mensal": ["Financeiro Mensal", "Relatório completo do mês"],
 };
 
@@ -2616,7 +2909,8 @@ export default function App() {
               {view === "crediario" && <Crediario data={data} update={update} notify={notify} storeName={data.storeConfig.name} />}
               {view === "clientes" && <Clientes data={data} update={update} notify={notify} />}
               {view === "fornecedores" && <Fornecedores data={data} update={update} notify={notify} />}
-              {view === "gastos" && <GastosDespesas data={data} update={update} notify={notify} />}
+                           {view === "gastos" && <GastosDespesas data={data} update={update} notify={notify} />}
+              {view === "pessoais" && <GastosPessoais data={data} update={update} notify={notify} />}
               {view === "financeiro-mensal" && <FinanceiroMensal data={data} update={update} notify={notify} />}
             </>
           )}
