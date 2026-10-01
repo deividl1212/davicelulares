@@ -1365,7 +1365,24 @@ function FinanceiroMensal({ data, update, notify }) {
   const [reportOpen, setReportOpen] = useState(false);
   const [lancModalOpen, setLancModalOpen] = useState(false);
   const emptyLanc = { type: "receber", description: "", amount: "", dueDate: "" };
-  const [lancForm, setLancForm] = useState(emptyLanc);
+    const [lancForm, setLancForm] = useState(emptyLanc);
+
+  // ===== Navegação entre meses =====
+  const [monthOffset, setMonthOffset] = useState(0); // 0 = mês atual, -1 = mês passado...
+  const refDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(1);
+    d.setMonth(d.getMonth() + monthOffset);
+    return d;
+  }, [monthOffset]);
+  const refKey = `${refDate.getFullYear()}-${String(refDate.getMonth() + 1).padStart(2, "0")}`;
+  const monthKeyOf = (value) => {
+    if (!value) return "";
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value.slice(0, 7); // datas do campo "Vencimento"
+    const d = new Date(value);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  };
+  const isRefMonth = (value) => monthKeyOf(value) === refKey;
 
   const saveLanc = () => {
     if (!lancForm.description.trim() || !lancForm.amount) return;
@@ -1373,18 +1390,18 @@ function FinanceiroMensal({ data, update, notify }) {
     setLancForm(emptyLanc); setLancModalOpen(false); notify("Lançamento adicionado");
   };
   const markPaid = (id) => { update("financeEntries", (arr) => arr.map((f) => (f.id === id ? { ...f, status: "pago", paidAt: now() } : f))); notify("Lançamento baixado"); };
-  const receivablesManual = data.financeEntries.filter((f) => f.type === "receber").map((f) => ({ id: f.id, description: f.description, amount: f.amount, isPago: f.status === "pago", isCrediario: false }));
+  const receivablesManual = data.financeEntries.filter((f) => f.type === "receber" && isRefMonth(f.dueDate || f.paidAt || f.createdAt)).map((f) => ({ id: f.id, description: f.description, amount: f.amount, isPago: f.status === "pago", isCrediario: false }));
   const receivablesCrediario = (data.crediarioAccounts || []).filter((a) => a.status === "Pendente").map((a) => ({ id: a.id, description: `Promissória — ${a.customerNameFree || "Cliente"}`, amount: a.balance, isPago: false, isCrediario: true }));
   const receivables = [...receivablesManual, ...receivablesCrediario];
-  const payables = data.financeEntries.filter((f) => f.type === "pagar");
+    const payables = data.financeEntries.filter((f) => f.type === "pagar" && isRefMonth(f.dueDate || f.paidAt || f.createdAt));
 
-  const monthSales = useMemo(() => data.sales.filter((s) => isThisMonth(s.createdAt)).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)), [data.sales]);
+  const monthSales = useMemo(() => data.sales.filter((s) => isRefMonth(s.createdAt)).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)), [data.sales, refKey]);
 
   const osRevenue = monthSales.reduce((sum, s) => sum + s.items.filter((i) => i.productId.startsWith("os-")).reduce((s2, i) => s2 + i.lineTotal, 0), 0);
   const productRevenue = monthSales.reduce((sum, s) => sum + s.total, 0) - osRevenue;
   const totalRevenue = productRevenue + osRevenue;
 
-  const monthExpenses = useMemo(() => data.financeEntries.filter((f) => f.type === "pagar" && f.status === "pago" && f.paidAt && isThisMonth(f.paidAt)).sort((a, b) => new Date(b.paidAt) - new Date(a.paidAt)), [data.financeEntries]);
+  const monthExpenses = useMemo(() => data.financeEntries.filter((f) => f.type === "pagar" && f.status === "pago" && f.paidAt && isRefMonth(f.paidAt)).sort((a, b) => new Date(b.paidAt) - new Date(a.paidAt)), [data.financeEntries, refKey]);
   const monthExpensesTotal = monthExpenses.reduce((s, f) => s + f.amount, 0);
 
   const byPaymentMonth = { pix: 0, credito: 0, debito: 0, dinheiro: 0 };
@@ -1420,12 +1437,12 @@ function FinanceiroMensal({ data, update, notify }) {
   });
   const topProducts = Object.values(productAgg).sort((a, b) => b.qty - a.qty).slice(0, 3);
 
-  const now2 = new Date();
-  const daysInMonth = new Date(now2.getFullYear(), now2.getMonth() + 1, 0).getDate();
+    const daysInMonth = new Date(refDate.getFullYear(), refDate.getMonth() + 1, 0).getDate();
   const byDay = Array.from({ length: daysInMonth }, () => 0);
   monthSales.forEach((s) => { byDay[new Date(s.createdAt).getDate() - 1] += s.total; });
   const maxDay = Math.max(1, ...byDay);
 
+  const monthLabel = refDate.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
   const monthLabel = now2.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 
   const daySales = useMemo(() => {
@@ -1437,7 +1454,16 @@ function FinanceiroMensal({ data, update, notify }) {
   return (
     <div>
       <div className="toolbar">
-        <div style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 15, textTransform: "capitalize" }}>{monthLabel}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button className="btn btn-secondary btn-sm" onClick={() => setMonthOffset((m) => m - 1)}>
+            <ChevronRight size={14} style={{ transform: "rotate(180deg)" }} />
+          </button>
+          <div style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 15, textTransform: "capitalize", minWidth: 160, textAlign: "center" }}>{monthLabel}</div>
+          <button className="btn btn-secondary btn-sm" onClick={() => setMonthOffset((m) => m + 1)} disabled={monthOffset >= 0}>
+            <ChevronRight size={14} />
+          </button>
+          {monthOffset !== 0 && <button className="btn btn-ghost btn-sm" onClick={() => setMonthOffset(0)}>Voltar para este mês</button>}
+        </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button className="btn btn-secondary" onClick={() => setLancModalOpen(true)}><Plus size={15} /> Novo lançamento</button>
           <ReportButton onClick={() => setReportOpen(true)} />
