@@ -1443,7 +1443,7 @@ function FinanceiroMensal({ data, update, notify }) {
   const maxDay = Math.max(1, ...byDay);
 
   const monthLabel = refDate.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
-  const monthLabel = now2.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+  
 
   const daySales = useMemo(() => {
     if (!dayDetail) return [];
@@ -1686,7 +1686,7 @@ function FinanceiroMensal({ data, update, notify }) {
       )}
 
       {reportOpen && (
-        <ReportModal title="Relatório financeiro mensal" storeName={data.storeConfig.name} onClose={() => setReportOpen(false)}>
+        <ReportModal title={`Relatório financeiro — ${monthLabel}`} storeName={data.storeConfig.name} onClose={() => setReportOpen(false)}>
           <div className="grid" style={{ gridTemplateColumns: "repeat(3,1fr)", marginBottom: 16 }}>
             <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">Faturamento total</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(totalRevenue)}</div></div>
             <div className="card stat-card" style={{ padding: 14 }}><div className="stat-label">Faturamento de vendas</div><div className="mono" style={{ fontSize: 16, fontWeight: 700 }}>{brl(productRevenue)}</div></div>
