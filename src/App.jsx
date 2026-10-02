@@ -736,8 +736,14 @@ function VendasPDV({ data, update, notify, storeName }) {
           {filteredProducts.length > 0 && (
             <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 6 }}>
               {filteredProducts.map((p) => (
-                <div key={p.id} className="checklist-item" style={{ cursor: "pointer" }} onClick={() => addToCart(p)}>
-                  <div><div style={{ fontWeight: 600, fontSize: 13 }}>{p.name}</div><div style={{ fontSize: 11.5, color: "var(--text-faint)" }}>{p.qty} em estoque</div></div>
+                                <div key={p.id} className="checklist-item" style={{ cursor: "pointer" }} onClick={() => addToCart(p)}>
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontWeight: 600, fontSize: 13 }}>{p.name}</span>
+                      <span className="badge gray">{p.category}</span>
+                    </div>
+                    <div style={{ fontSize: 11.5, color: "var(--text-faint)" }}>{p.qty} em estoque</div>
+                  </div>
                   <div className="mono" style={{ fontWeight: 600 }}>{brl(p.price)}</div>
                 </div>
               ))}
