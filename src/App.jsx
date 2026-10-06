@@ -565,7 +565,9 @@ function VendasPDV({ data, update, notify, storeName }) {
   const [payment, setPayment] = useState("dinheiro");
   const [customerName, setCustomerName] = useState("");
   const [installments, setInstallments] = useState(1);
-  const [cashReceived, setCashReceived] = useState("");
+    const [cashReceived, setCashReceived] = useState("");
+  const [descontoTxt, setDescontoTxt] = useState("");
+  const [acrescimoTxt, setAcrescimoTxt] = useState("");
   const [entradaCrediario, setEntradaCrediario] = useState("");
   const [prazoCrediario, setPrazoCrediario] = useState(30);
   const [parcelasCrediario, setParcelasCrediario] = useState(1);
@@ -613,7 +615,10 @@ function VendasPDV({ data, update, notify, storeName }) {
     setCart((c) => c.map((i) => i.productId === productId ? { ...i, qty: Math.max(1, Math.min(i.maxQty, i.qty + delta)) } : i));
   };
   const removeFromCart = (productId) => setCart((c) => c.filter((i) => i.productId !== productId));
-  const cartTotal = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+   const subtotal = cart.reduce((sum, i) => sum + i.price * i.qty, 0);
+  const descontoValue = Math.min(subtotal, Math.max(0, parseFloat(String(descontoTxt).replace(",", ".")) || 0));
+  const acrescimoValue = Math.max(0, parseFloat(String(acrescimoTxt).replace(",", ".")) || 0);
+  const cartTotal = Math.max(0, subtotal - descontoValue + acrescimoValue);
   const cashReceivedValue = parseFloat(String(cashReceived).replace(",", ".")) || 0;
   const trocoValue = payment === "dinheiro" ? Math.max(0, cashReceivedValue - cartTotal) : 0;
   const entradaValue = Math.min(cartTotal, Math.max(0, parseFloat(String(entradaCrediario).replace(",", ".")) || 0));
@@ -642,7 +647,8 @@ function VendasPDV({ data, update, notify, storeName }) {
       troco: payment === "dinheiro" ? trocoValue : null,
       crediarioTotal: isCrediario ? cartTotal : null,
       crediarioEntrada: isCrediario ? entradaValue : null,
-      crediarioAccountId: null,
+            crediarioAccountId: null,
+      subtotal, discount: descontoValue, surcharge: acrescimoValue,
       customerName: customerName.trim() || null, createdAt: now(),
     };
 
@@ -671,7 +677,8 @@ function VendasPDV({ data, update, notify, storeName }) {
       update("serviceOrders", (arr) => arr.map((o) => (osIds.includes(o.id) ? { ...o, status: "entregue", updatedAt: now() } : o)));
     }
     setCart([]); setCustomerName(""); setPayment("dinheiro"); setInstallments(1); setCashReceived("");
-    setEntradaCrediario(""); setPrazoCrediario(30); setParcelasCrediario(1);
+        setEntradaCrediario(""); setPrazoCrediario(30); setParcelasCrediario(1);
+    setDescontoTxt(""); setAcrescimoTxt("");
     notify("Venda registrada: " + brl(cartTotal));
     setReceiptSale(sale);
   };
@@ -824,6 +831,30 @@ function VendasPDV({ data, update, notify, storeName }) {
               </>
             )}
 
+                       <div className="field-row" style={{ gridTemplateColumns: "1fr 1fr" }}>
+              <Field label="Desconto (R$)"><input className="input" value={descontoTxt} onChange={(e) => setDescontoTxt(e.target.value)} placeholder="0,00" /></Field>
+              <Field label="Acréscimo (R$)"><input className="input" value={acrescimoTxt} onChange={(e) => setAcrescimoTxt(e.target.value)} placeholder="0,00" /></Field>
+            </div>
+            {(descontoValue > 0 || acrescimoValue > 0) && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 12.5 }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "var(--text-dim)" }}>Subtotal</span>
+                  <span className="mono">{brl(subtotal)}</span>
+                </div>
+                {descontoValue > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "var(--text-dim)" }}>Desconto</span>
+                    <span className="mono" style={{ color: "var(--green)" }}>− {brl(descontoValue)}</span>
+                  </div>
+                )}
+                {acrescimoValue > 0 && (
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ color: "var(--text-dim)" }}>Acréscimo</span>
+                    <span className="mono" style={{ color: "var(--red)" }}>+ {brl(acrescimoValue)}</span>
+                  </div>
+                )}
+              </div>
+            )}
             <div style={{ borderTop: "1px solid var(--border-soft)", paddingTop: 14, display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
               <span style={{ color: "var(--text-dim)", fontSize: 13 }}>Total</span>
               <span className="mono" style={{ fontSize: 24, fontWeight: 700 }}>{brl(cartTotal)}</span>
@@ -904,6 +935,13 @@ function ReceiptModal({ sale, storeName, onClose }) {
             ))}
           </tbody>
         </table>
+               {(sale.discount > 0 || sale.surcharge > 0) && (
+          <div style={{ marginTop: 8, fontSize: 12, color: "var(--text-dim)", display: "flex", flexDirection: "column", gap: 3 }}>
+            <div style={{ display: "flex", justifyContent: "space-between" }}><span>Subtotal</span><span className="mono">{brl(sale.subtotal)}</span></div>
+            {sale.discount > 0 && <div style={{ display: "flex", justifyContent: "space-between" }}><span>Desconto</span><span className="mono">− {brl(sale.discount)}</span></div>}
+            {sale.surcharge > 0 && <div style={{ display: "flex", justifyContent: "space-between" }}><span>Acréscimo</span><span className="mono">+ {brl(sale.surcharge)}</span></div>}
+          </div>
+        )}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 8, paddingTop: 10, borderTop: "1px dashed var(--border)" }}>
           <span style={{ fontWeight: 600, fontSize: 13 }}>{sale.paymentMethod === "crediario" ? "Total da compra" : "Total pago"}</span>
           <span className="mono" style={{ fontSize: 20, fontWeight: 700 }}>{brl(sale.paymentMethod === "crediario" ? sale.crediarioTotal : sale.total)}</span>
