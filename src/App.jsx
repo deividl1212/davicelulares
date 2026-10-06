@@ -942,7 +942,7 @@ function ReceiptModal({ sale, storeName, onClose }) {
             {sale.surcharge > 0 && <div style={{ display: "flex", justifyContent: "space-between" }}><span>Acréscimo</span><span className="mono">+ {brl(sale.surcharge)}</span></div>}
           </div>
         )}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 8, paddingTop: 10, borderTop: "1px dashed var(--border)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 8, paddingTop: 10, borderTop: "1px dashed var(--border)" }}> 
           <span style={{ fontWeight: 600, fontSize: 13 }}>{sale.paymentMethod === "crediario" ? "Total da compra" : "Total pago"}</span>
           <span className="mono" style={{ fontSize: 20, fontWeight: 700 }}>{brl(sale.paymentMethod === "crediario" ? sale.crediarioTotal : sale.total)}</span>
         </div>
