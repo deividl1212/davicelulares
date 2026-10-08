@@ -300,7 +300,7 @@ function useStore() {
       }
       try {
         const snap = await getDoc(doc(db, "config", "storeConfig"));
-        result.storeConfig = snap.exists() ? snap.data().value : { name: "Sistema de Teste" };
+        result.storeConfig = snap.exists() ? snap.data().value : { name: "Davi Celulares" };
       } catch (e) {
         result.storeConfig = { name: "Sistema de Teste" };
       }
