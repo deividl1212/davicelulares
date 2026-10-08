@@ -926,7 +926,7 @@ function ReceiptModal({ sale, storeName, onClose }) {
   };
   const temAjuste = sale.discount > 0 || sale.surcharge > 0;
   const receiptText = [
-    center(storeName),
+        center("Davi Celulares"),
     center("Comprovante de venda"),
     sep,
     lr("Data: " + dt.toLocaleDateString("pt-BR"), dt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })),
@@ -944,7 +944,9 @@ function ReceiptModal({ sale, storeName, onClose }) {
     center("Obrigado pela preferencia,"),
     center("volte sempre!"),
     "", "", "",
-  ].join("\n");
+    ].join("\n")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // tira acentos (a impressora não reconhece)
+    .replace(/[—–]/g, "-");                            // troca travessão por hífen
 
   // Botão "Imprimir": abre uma aba só com o comprovante e imprime
   const handlePrint = () => {
