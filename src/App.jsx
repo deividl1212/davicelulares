@@ -281,7 +281,7 @@ function useStore() {
     products: [], customers: [], serviceOrders: [], cashRegisters: [], sales: [], financeEntries: [], suppliers: [],
         crediarioAccounts: [], crediarioPayments: [], filmCompat: [],
     personalMonths: [], personalExpenses: [], personalCards: [],
-    storeConfig: { name: "Sistema de Teste" },
+    storeConfig: { name: "Davi Celulares" },
     categories: PRODUCT_CATEGORIES,
   });
   const [loaded, setLoaded] = useState(false);
@@ -302,7 +302,7 @@ function useStore() {
         const snap = await getDoc(doc(db, "config", "storeConfig"));
         result.storeConfig = snap.exists() ? snap.data().value : { name: "Davi Celulares" };
       } catch (e) {
-        result.storeConfig = { name: "Sistema de Teste" };
+        result.storeConfig = { name: "Davi Celulares" };
       }
       try {
         const snapCat = await getDoc(doc(db, "config", "categories"));
