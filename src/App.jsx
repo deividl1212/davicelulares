@@ -182,7 +182,8 @@ const STYLES = `
     .grid[style*="repeat"] { grid-template-columns: 1fr !important; }
     .grid[style*="1fr 1fr"], .grid[style*="1.4fr 1fr"] { grid-template-columns: 1fr !important; }
     table { display: block; overflow-x: auto; white-space: nowrap; }
-    .modal, .modal.wide { max-width: 96vw; margin: 0 8px; }
+        .modal, .modal.wide { max-width: 96vw; margin: 0 8px; }
+    .modal-footer { flex-wrap: wrap; }
     .toolbar { flex-direction: column; align-items: stretch; gap: 10px; }
     .toolbar-left { flex-direction: column; align-items: stretch; }
   }
@@ -909,9 +910,81 @@ function VendasPDV({ data, update, notify, storeName }) {
 
 function ReceiptModal({ sale, storeName, onClose }) {
   const dt = new Date(sale.createdAt);
+
+  // ===== Texto do comprovante no formato de impressora térmica =====
+  const W = 32; // 32 = bobina 58mm | troque para 48 se a bobina for 80mm
+  const money = (v) => brl(v).replace(/\u00A0/g, " ");
+  const sep = "-".repeat(W);
+  const center = (t) => {
+    const s = String(t).slice(0, W);
+    return " ".repeat(Math.max(0, Math.floor((W - s.length) / 2))) + s;
+  };
+  const lr = (l, r) => {
+    const right = String(r);
+    const left = String(l).slice(0, Math.max(1, W - right.length - 1));
+    return left + " ".repeat(Math.max(1, W - left.length - right.length)) + right;
+  };
+  const temAjuste = sale.discount > 0 || sale.surcharge > 0;
+  const receiptText = [
+    center(storeName),
+    center("Comprovante de venda"),
+    sep,
+    lr("Data: " + dt.toLocaleDateString("pt-BR"), dt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })),
+    ...(sale.customerName ? ["Cliente: " + sale.customerName] : []),
+    sep,
+    ...sale.items.flatMap((i) => [String(i.name).slice(0, W), lr(`  ${i.qty} x ${money(i.price)}`, money(i.lineTotal))]),
+    sep,
+    ...(temAjuste ? [lr("Subtotal", money(sale.subtotal))] : []),
+    ...(sale.discount > 0 ? [lr("Desconto", "- " + money(sale.discount))] : []),
+    ...(sale.surcharge > 0 ? [lr("Acrescimo", "+ " + money(sale.surcharge))] : []),
+    lr(sale.paymentMethod === "crediario" ? "TOTAL DA COMPRA" : "TOTAL", money(sale.paymentMethod === "crediario" ? sale.crediarioTotal : sale.total)),
+    "Pagamento: " + PAYMENT_LABELS[sale.paymentMethod] + (sale.installments > 1 ? ` ${sale.installments}x` : ""),
+    ...(sale.paymentMethod === "dinheiro" && sale.cashReceived != null ? [lr("Recebido", money(sale.cashReceived)), lr("Troco", money(sale.troco))] : []),
+    sep,
+    center("Obrigado pela preferencia,"),
+    center("volte sempre!"),
+    "", "", "",
+  ].join("\n");
+
+  // Botão "Imprimir": abre uma aba só com o comprovante e imprime
+  const handlePrint = () => {
+    const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const w = window.open("", "_blank");
+    if (!w) { alert("O navegador bloqueou a janela de impressão. Permita pop-ups para este site."); return; }
+    w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comprovante de venda</title>
+<style>
+  @page { margin: 4mm; }
+  body { margin: 0; background: #fff; color: #000; }
+  pre { font-family: "Courier New", monospace; font-size: 12px; line-height: 1.35; margin: 0; white-space: pre; }
+</style></head>
+<body><pre>${esc(receiptText)}</pre>
+<script>window.onload = function () { setTimeout(function () { window.print(); }, 300); };<\/script>
+</body></html>`);
+    w.document.close();
+  };
+
+  // Botão "Imprimir no celular": compartilha o texto (escolher RawBT)
+  const handleMobilePrint = async () => {
+    if (navigator.share) {
+      try { await navigator.share({ title: "Comprovante de venda", text: receiptText }); } catch (e) { /* cancelou */ }
+    } else {
+      try {
+        await navigator.clipboard.writeText(receiptText);
+        alert("Comprovante copiado!");
+      } catch (e) {
+        alert("Não foi possível compartilhar neste aparelho.");
+      }
+    }
+  };
   return (
     <Modal title="Comprovante de venda" onClose={onClose}
-      footer={<><button className="btn btn-secondary" onClick={() => window.print()}>Imprimir</button><button className="btn btn-primary" onClick={onClose}>Concluir</button></>}>
+           footer={<>
+        <button className="btn btn-secondary" onClick={handleMobilePrint}><Share2 size={14} /> Imprimir no celular</button>
+        <button className="btn btn-secondary" onClick={handlePrint}><FileText size={14} /> Imprimir</button>
+        <button className="btn btn-primary" onClick={onClose}>Concluir</button>
+      </>}>
       <div style={{ background: "var(--surface-2)", border: "1px solid var(--border-soft)", borderRadius: 10, padding: 18 }}>
         <div style={{ textAlign: "center", marginBottom: 14 }}>
           <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 16 }}>{storeName}</div>
