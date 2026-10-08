@@ -965,7 +965,7 @@ function ReceiptModal({ sale, storeName, onClose }) {
 <style>
   @page { margin: 4mm; }
   body { margin: 0; background: #fff; color: #000; }
-  pre { font-family: "Courier New", monospace; font-size: 12px; line-height: 1.35; margin: 0; white-space: pre; }
+  pre { font-family: "Courier New", monospace; font-size: 12px; font-weight: bold; line-height: 1.35; margin: 0; white-space: pre; }
 </style></head>
 <body><pre>${esc(receiptText)}</pre>
 <script>window.onload = function () { setTimeout(function () { window.print(); }, 300); };<\/script>
