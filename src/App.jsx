@@ -288,8 +288,8 @@ function useStore() {
 
   useEffect(() => {
     (async () => {
-      const result = {};
-      for (const name of FIRESTORE_COLLECTIONS) {
+            const result = {};
+      const loadCollection = async (name) => {
         try {
           const snaps = await getDocs(collection(db, name));
           result[name] = snaps.docs.map((d) => d.data());
@@ -297,19 +297,25 @@ function useStore() {
           console.error("Erro ao carregar", name, e);
           result[name] = [];
         }
-      }
-      try {
-        const snap = await getDoc(doc(db, "config", "storeConfig"));
-        result.storeConfig = snap.exists() ? snap.data().value : { name: "Davi Celulares" };
-      } catch (e) {
-        result.storeConfig = { name: "Davi Celulares" };
-      }
-      try {
-        const snapCat = await getDoc(doc(db, "config", "categories"));
-        result.categories = snapCat.exists() && Array.isArray(snapCat.data().value) && snapCat.data().value.length ? snapCat.data().value : PRODUCT_CATEGORIES;
-      } catch (e) {
-        result.categories = PRODUCT_CATEGORIES;
-      }
+      };
+      const loadStoreConfig = async () => {
+        try {
+          const snap = await getDoc(doc(db, "config", "storeConfig"));
+          result.storeConfig = { ...(snap.exists() ? snap.data().value : {}), name: "Davi Celulares" };
+        } catch (e) {
+          result.storeConfig = { name: "Davi Celulares" };
+        }
+      };
+      const loadCategories = async () => {
+        try {
+          const snapCat = await getDoc(doc(db, "config", "categories"));
+          result.categories = snapCat.exists() && Array.isArray(snapCat.data().value) && snapCat.data().value.length ? snapCat.data().value : PRODUCT_CATEGORIES;
+        } catch (e) {
+          result.categories = PRODUCT_CATEGORIES;
+        }
+      };
+      // Busca tudo AO MESMO TEMPO (antes era uma tabela por vez, em fila)
+      await Promise.all([...FIRESTORE_COLLECTIONS.map(loadCollection), loadStoreConfig(), loadCategories()]);
       setData((d) => ({ ...d, ...result }));
       setLoaded(true);
     })();
